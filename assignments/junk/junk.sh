@@ -1,7 +1,10 @@
-#! /bin/bash
-
-# I pledge my honor that I have abided by the Stevens Honor System.
-# - Joshua Schmidt 1/29/20
+#!/bin/bash
+###############################################################################
+# Author: Joshua Schmidt
+# Date: 1/29/20
+# Pledge: I pledge my honor that I have abided by the Stevens Honor System.
+# Description: Junk Bin
+###############################################################################
 
 readonly working_dir=~/.junk
 
