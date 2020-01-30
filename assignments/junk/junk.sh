@@ -3,11 +3,11 @@
 # I pledge my honor that I have abided by the Stevens Honor System.
 # - Joshua Schmidt 1/29/20
 
-working_dir=~/.junk
+readonly working_dir=~/.junk
 
 function print_usage {
   cat << EOF
-Usage: junk.sh [-hlp] [list of files]
+Usage: $(basename "$0") [-hlp] [list of files]
    -h: Display help.
    -l: List junked files.
    -p: Purge all files.
@@ -15,13 +15,15 @@ Usage: junk.sh [-hlp] [list of files]
 EOF
 }
 
+readonly error_exit_num=1
+
 flag=-1
 
 function check_flag {
   if [ $flag -ne  -1 ]; then
     echo "Error: Too many options enabled."
     print_usage
-    exit 1
+    exit $error_exit_num
   fi
 }
 
@@ -37,7 +39,7 @@ while getopts ":hlp" option; do
        flag=2
        ;;
     ?) printf "Error: Unknown option '-%s'.\n" $OPTARG >&2
-      exit 1
+      exit $error_exit_num
       ;;
   esac
 done
@@ -56,7 +58,7 @@ if [ $flag -eq -1 ]; then
   for f in "${filenames[@]}"; do
     if [ ! -f "$f" ]; then
       printf "Error: cannot find file '%s'.\n" $f >&2
-      exit 1
+      exit $error_exit_num
     fi
   done
 fi
@@ -77,7 +79,7 @@ if [ $flag -eq -1 ]; then
   else
     # delete given files
     for f in "${filenames[@]}"; do
-      mv $f $working_dir || exit 1;
+      mv $f $working_dir || exit $error_exit_num;
     done
   fi
 elif [ $flag -eq 0 ]; then
