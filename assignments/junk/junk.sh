@@ -48,6 +48,18 @@ for f in $@; do
   filenames[$index]="$f"
   ((++index))
 done
+numfiles=${#filenames[*]}
+if [ $numfiles -gt 0 ]; then
+  check_flag
+fi
+if [ $flag -eq -1 ]; then
+  for f in "${filenames[@]}"; do
+    if [ ! -f "$f" ]; then
+      printf "Error: cannot find file '%s'.\n" $f >&2
+      exit 1
+    fi
+  done
+fi
 
 # after command is verified make the working directory:
 
@@ -59,13 +71,13 @@ fi
 
 if [ $flag -eq -1 ]; then
   # no flag found
-  if [ ${#filenames[*]} -eq 0 ]; then
+  if [ $numfiles -eq 0 ]; then
     # no files found - print usage
     print_usage
   else
     # delete given files
     for f in "${filenames[@]}"; do
-      mv $f $working_dir
+      mv $f $working_dir || exit 1;
     done
   fi
 elif [ $flag -eq 0 ]; then
