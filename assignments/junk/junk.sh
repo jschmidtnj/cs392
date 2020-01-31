@@ -6,7 +6,7 @@
 # Description: Junk Bin
 ###############################################################################
 
-readonly working_dir=~/.junk
+readonly junk_dir=~/.junk
 
 function print_usage {
   cat << EOF
@@ -57,19 +57,11 @@ numfiles=${#filenames[*]}
 if [ $numfiles -gt 0 ]; then
   check_flag
 fi
-if [ $flag -eq -1 ]; then
-  for f in "${filenames[@]}"; do
-    if [ ! -f "$f" ]; then
-      printf "Error: cannot find file '%s'.\n" $f >&2
-      exit $error_exit_num
-    fi
-  done
-fi
 
 # after command is verified make the working directory:
 
-if [ ! -d $working_dir ]; then
-  mkdir $working_dir
+if [ ! -d $junk_dir ]; then
+  mkdir $junk_dir
 fi
 
 # then execute command:
@@ -82,7 +74,11 @@ if [ $flag -eq -1 ]; then
   else
     # delete given files
     for f in "${filenames[@]}"; do
-      mv $f $working_dir || exit $error_exit_num;
+      if [ ! -f "$f" ] && [ ! -d "$f" ]; then
+        printf "Warning: '%s' not found.\n" $f >&2
+      else
+        mv $f $junk_dir;
+      fi
     done
   fi
 elif [ $flag -eq 0 ]; then
@@ -90,10 +86,10 @@ elif [ $flag -eq 0 ]; then
   print_usage
 elif [ $flag -eq 1 ]; then
   # list flag
-  ls -laF $working_dir
+  ls -laF $junk_dir
 else
   # purge flag
-  rm -rf $working_dir/*
+  rm -rf $junk_dir/*
 fi
 
 exit 0
