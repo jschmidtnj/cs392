@@ -86,10 +86,11 @@ elif [ $flag -eq 0 ]; then
   print_usage
 elif [ $flag -eq 1 ]; then
   # list flag
-  ls -laF $junk_dir
+  ls -lAF $junk_dir
 else
   # purge flag
-  rm -rf $junk_dir/*
+  # karma to https://unix.stackexchange.com/a/77313 for including hidden files:
+  rm -rf $junk_dir/.?* $junk_dir/.[!.]* $junk_dir/* 2> /dev/null
 fi
 
 exit 0
