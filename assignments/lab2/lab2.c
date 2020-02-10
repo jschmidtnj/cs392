@@ -35,7 +35,7 @@ int main() {
 
     /* 1. Using malloc, allocate enough space in 'copy' to fit 'src'.
           (man 3 malloc) */
-    copy = (char *)malloc(sizeof src);
+    copy = (char *)malloc((my_strlen(src) + 1) * sizeof(char));
     if (copy == NULL) {
         return EXIT_FAILURE;
     }
@@ -80,9 +80,7 @@ size_t my_strlen(char *src) {
     if (src == NULL) {
         return count;
     }
-    while (*src++) {
-        count++;
-    }
+    while (*src++) count++;
     return count;
 }
 
@@ -102,6 +100,9 @@ char *my_strcpy(char *dst, char *src) {
     if (src == NULL)
         return NULL;
     char *res = dst;
-    while ((*dst++ = *src++)) ;
+    while (*src) {
+        *dst++ = *src++;
+    }
+    *dst = '\0';
     return res;
 }
