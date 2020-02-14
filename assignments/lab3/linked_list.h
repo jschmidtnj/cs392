@@ -32,16 +32,26 @@ linked_list *create_linked_list() {
  */
 void insert_in_order(linked_list *list, node *n,
                      int (*cmp)(const void *, const void *)) {
-  if (list->num_nodes == 0 || cmp(list->head->data, n->data) >= 0) {
+  if (list->num_nodes == 0) {
+    n->next = NULL;
+    n->prev = NULL;
+    list->head = n;
+    list->tail = n;
+  } else if (cmp(list->head->data, n->data) >= 0) {
     n->next = list->head;
+    n->prev = NULL;
     list->head = n;
   } else {
     node *curr = list->head;
     while (curr->next != NULL && cmp(curr->next->data, n->data) < 0) {
       curr = curr->next;
     }
+    n->prev = curr;
     n->next = curr->next;
     curr->next = n;
+    if (n->next == NULL) {
+      list->tail = n;
+    }
   }
   list->num_nodes++;
 }
