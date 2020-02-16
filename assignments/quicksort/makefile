@@ -6,3 +6,17 @@
 # * Description : makefile for quicksort
 # ******************************************************************************/
 
+name = sort
+flags = -Wall -Werror -pedantic-errors
+
+sort: sort.o quicksort.o
+	gcc sort.o quicksort.o -o $(name)
+
+sort.o: sort.c
+	gcc $(flags) -c sort.c
+
+quicksort.o: quicksort.c quicksort.h
+	gcc $(flags) -c quicksort.c
+
+clean:
+	rm -f *.o $(name) $(name).exe

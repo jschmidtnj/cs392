@@ -2,19 +2,22 @@
  * Name        : sort.c
  * Author      : Joshua Schmidt
  * Date        : 2/10/20
- * Pledge      : I pledge my honor that I have abided by the Stevens Honor System.
- * Description : Quicksort implementation.
+ * Pledge      : I pledge my honor that I have abided by the Stevens Honor
+ *System. Description : Quicksort implementation.
  ******************************************************************************/
-#include <stdio.h>
-#include <string.h>
 #include "quicksort.h"
 
+#include <stdio.h>
+#include <string.h>
+
 /* Static (private to this file) function prototypes. */
-static void swap(void *a, void *b, size_t size);
+static void swap(void *a, void *b, int size);
 static int lomuto(void *array, int left, int right, size_t elem_sz,
-                  int (*comp) (const void*, const void*));
+                  int (*comp)(const void *, const void *));
 static void quicksort_helper(void *array, int left, int right, size_t elem_sz,
-                             int (*comp) (const void*, const void*));
+                             int (*comp)(const void *, const void *));
+
+#include <math.h>
 
 #define DBL_EPSILON 1e-8
 
@@ -28,7 +31,15 @@ static void quicksort_helper(void *array, int left, int right, size_t elem_sz,
  * -- a negative if the second integer is greater
  */
 int int_cmp(const void *a, const void *b) {
-    // TODO
+  int *a_int = (int *)a;
+  int *b_int = (int *)b;
+  if (*a_int < *b_int) {
+    return -1;
+  } else if (*a_int == *b_int) {
+    return 0;
+  } else {
+    return 1;
+  }
 }
 
 /**
@@ -41,16 +52,16 @@ int int_cmp(const void *a, const void *b) {
  * -- -1 if the second double is greater
  */
 int dbl_cmp(const void *a, const void *b) {
-    double * a_dbl = (double *)a;
-    double * b_dbl = (double *)b;
-    int cmp = fabs(a - b) < DBL_EPSILON;
-    if (cmp == 0) {
-        return 0;
-    } else if (cmp > 0) {
-        return 1;
-    } else {
-        return -1;
-    }
+  double *a_dbl = (double *)a;
+  double *b_dbl = (double *)b;
+  int cmp = fabs(*a_dbl - *b_dbl) < DBL_EPSILON;
+  if (cmp == 0) {
+    return 0;
+  } else if (cmp > 0) {
+    return 1;
+  } else {
+    return -1;
+  }
 }
 
 /**
@@ -59,30 +70,30 @@ int dbl_cmp(const void *a, const void *b) {
  * First casts the void pointers to char* pointers (i.e. char**).
  * Returns the result of calling strcmp on them.
  */
-int str_cmp(const void *a, const void *b) { 
-    double * a_str = (double *)a;
-    double * b_str = (double *)b;
-    while (*a_str != '\0' && *b_str != '\0') {
-        if (*a_str > *b_str) {
-            // a is bigger
-            return 1;
-        } else if (*a_str < *b_str) {
-            // b is bigger
-            return -1;
-        }
-        *a_str++;
-        *b_str++;
+int str_cmp(const void *a, const void *b) {
+  char *a_str = (char *)a;
+  char *b_str = (char *)b;
+  while (*a_str != '\0' && *b_str != '\0') {
+    if (*a_str > *b_str) {
+      // a is bigger
+      return 1;
+    } else if (*a_str < *b_str) {
+      // b is bigger
+      return -1;
     }
-    if (*a_str == '\0' && *b_str == '\0') {
-        // they are the same
-        return 0;
-    } else if (*a_str != '\0') {
-        // a is bigger
-        return 1;
-    } else {
-        // b is bigger
-        return -1;
-    }
+    a_str++;
+    b_str++;
+  }
+  if (*a_str == '\0' && *b_str == '\0') {
+    // they are the same
+    return 0;
+  } else if (*a_str != '\0') {
+    // a is bigger
+    return 1;
+  } else {
+    // b is bigger
+    return -1;
+  }
 }
 
 /**
@@ -94,15 +105,15 @@ int str_cmp(const void *a, const void *b) {
  * For example, if ints are passed in, size will be 4. Therefore, this function
  * swaps 4 bytes in a and b character pointers.
  */
-static void swap(void *a, void *b, size_t size) {
-    char * a_char = (char *) a;
-    char * b_char = (char *) b;
-    char tmp;
-    for (size_t i = 0; i < size; i++) {
-        tmp = *(a_char + i);
-        *(a_char + i) = *(b_char + i);
-        *(a_char + i) = tmp;
-    }
+static void swap(void *a, void *b, int size) {
+  char *a_char = (char *)a;
+  char *b_char = (char *)b;
+  char tmp;
+  for (int i = 0; i < size; i++) {
+    tmp = *(a_char + i);
+    *(a_char + i) = *(b_char + i);
+    *(b_char + i) = tmp;
+  }
 }
 
 /**
@@ -116,8 +127,14 @@ static void swap(void *a, void *b, size_t size) {
  * pointer arithmetic.
  */
 static int lomuto(void *array, int left, int right, size_t elem_sz,
-                  int (*comp) (const void*, const void*)) {
-    // TODO
+                  int (*comp)(const void *, const void *)) {
+  void *p = (char *)array + (left * elem_sz);
+  int s = left;
+  for (size_t i = left + 1; i <= right; i++)
+    if (comp((char *)array + i * elem_sz, p) < 0)
+      swap((char *)array + (++s * elem_sz), (char *)array + (i * elem_sz), elem_sz);
+  swap((char *)array + (left * elem_sz), (char *)array + (s * elem_sz), elem_sz);
+  return s;
 }
 
 /**
@@ -127,8 +144,12 @@ static int lomuto(void *array, int left, int right, size_t elem_sz,
  * right index values.
  */
 static void quicksort_helper(void *array, int left, int right, size_t elem_sz,
-                             int (*comp) (const void*, const void*)) {
-    // TODO
+                             int (*comp)(const void *, const void *)) {
+  if (left < right) {
+    int partition = lomuto(array, left, right, elem_sz, comp);
+    quicksort_helper(array, left, partition - 1, elem_sz, comp);
+    quicksort_helper(array, partition + 1, right, elem_sz, comp);
+  }
 }
 
 /**
@@ -136,6 +157,6 @@ static void quicksort_helper(void *array, int left, int right, size_t elem_sz,
  * Calls quicksort_helper with left = 0 and right = len - 1.
  */
 void quicksort(void *array, size_t len, size_t elem_sz,
-               int (*comp) (const void*, const void*)) {
-    // TODO
+               int (*comp)(const void *, const void *)) {
+  quicksort_helper(array, 0, len - 1, elem_sz, comp);
 }
