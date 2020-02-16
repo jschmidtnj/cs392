@@ -54,10 +54,10 @@ int int_cmp(const void *a, const void *b) {
 int dbl_cmp(const void *a, const void *b) {
   double *a_dbl = (double *)a;
   double *b_dbl = (double *)b;
-  int cmp = fabs(*a_dbl - *b_dbl) < DBL_EPSILON;
-  if (cmp == 0) {
+  int cmp = fabs(*a_dbl - *b_dbl);
+  if (cmp < DBL_EPSILON) {
     return 0;
-  } else if (cmp > 0) {
+  } else if (*a_dbl > *b_dbl) {
     return 1;
   } else {
     return -1;

@@ -27,11 +27,9 @@ const char *usage_message =
    filename: The file to sort.\n\
    No flags defaults to sorting strings.\n";
 
-static void print_usage() { fprintf(stdout, usage_message); }
-
-static int handle_error(const char *error_message) {
+const static int handle_error(char *error_message) {
   fprintf(stderr, error_message);
-  print_usage();
+  fprintf(stderr, usage_message);
   return EXIT_FAILURE;
 }
 
@@ -53,18 +51,15 @@ static int handle_error(const char *error_message) {
  */
 int main(int argc, char **argv) {
   if (argc <= 1) {
-    print_usage();
+    fprintf(stdout, usage_message);
     return EXIT_SUCCESS;
   }
-  if (argc > 3) {
-    return handle_error("Error: Too many arguments provided.\n");
-  }
   elem_t mode = STRING;
-  int c;
+  char c;
   const char *unknown_option_template =
-      "Error: Unknown option '-%c' received.\n";
-  char unknown_option_message[sizeof(unknown_option_template) - 1];
-  while ((c = getopt(argc, argv, "id:")) != -1) {
+      "Error: Unknown option '%c' received.\n";
+  char * error_message;
+  while ((c = getopt(argc, argv, ":id")) != -1) {
     switch (c) {
       case 'i':
         mode = INT;
@@ -73,8 +68,15 @@ int main(int argc, char **argv) {
         mode = DOUBLE;
         break;
       case '?':
-        sprintf(unknown_option_message, unknown_option_template, optopt);
-        return handle_error(unknown_option_message);
+        error_message = (char *)malloc(strlen(unknown_option_template) - 1);
+        if (error_message == NULL) {
+          printf("Error: Problem with malloc\n");
+          return EXIT_FAILURE;
+        }
+        sprintf(error_message, unknown_option_template, optarg);
+        const int code = handle_error(error_message);
+        free(error_message);
+        return code;
       default:
         break;
     }
@@ -83,18 +85,29 @@ int main(int argc, char **argv) {
   if (mode > 0) {
     if (argc < 3) {
       return handle_error("Error: File not provided.\n");
+    } else if (argc > 3) {
+      return handle_error("Error: Too many arguments provided.\n");
     }
     file_name = *(argv + 2);
   } else {
+    if (argc > 2) {
+      return handle_error("Error: Too many arguments provided.\n");
+    }
     file_name = *(argv + 1);
   }
   FILE *file = fopen(file_name, "r");
   if (file == NULL) {
     const char *message_template =
         "Error: Cannot open '%s'. No such file or directory.\n";
-    char message[sizeof(message_template) - 2 + sizeof(file_name)];
-    sprintf(message, message_template, file_name);
-    return handle_error(message);
+    error_message = (char *)malloc(strlen(message_template) - 2 + strlen(file_name));
+    if (error_message == NULL) {
+      printf("Error: Problem with malloc\n");
+      return EXIT_FAILURE;
+    }
+    sprintf(error_message, message_template, file_name);
+    int code = handle_error(error_message);
+    free(error_message);
+    return code;
   }
   size_t buffer_size;
   switch (mode) {
@@ -109,6 +122,10 @@ int main(int argc, char **argv) {
       break;
   }
   char *data = (char *)malloc(MAX_ELEMENTS * buffer_size);
+  if (data == NULL) {
+    printf("Error: Problem with malloc\n");
+    return EXIT_FAILURE;
+  }
   char *line = NULL;
   size_t len;
   size_t line_count = 0;
@@ -121,7 +138,7 @@ int main(int argc, char **argv) {
   union
   {
     double data;
-    char * bytes;
+    char bytes[sizeof(double)];
   } double_data;
   while ((len = getline(&line, &string_buffer_size, file)) != -1) {
     switch (mode) {
