@@ -8,7 +8,7 @@
 #include "quicksort.h"
 
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
 /* Static (private to this file) function prototypes. */
 static void swap(void *a, void *b, int size);
@@ -128,10 +128,12 @@ static void swap(void *a, void *b, int size) {
  */
 static int lomuto(void *array, int left, int right, size_t elem_sz,
                   int (*comp)(const void *, const void *)) {
-  void *p = (char *)array + (left * elem_sz);
+  unsigned long randIndex = rand() % (right + 1 - left) + left;
+  swap((char *)array + (randIndex * elem_sz), (char *)array + (left * elem_sz), elem_sz);
+  void *pivot = (char *)array + (left * elem_sz);
   int s = left;
   for (size_t i = left + 1; i <= right; i++)
-    if (comp((char *)array + i * elem_sz, p) < 0)
+    if (comp((char *)array + i * elem_sz, pivot) < 0)
       swap((char *)array + (++s * elem_sz), (char *)array + (i * elem_sz), elem_sz);
   swap((char *)array + (left * elem_sz), (char *)array + (s * elem_sz), elem_sz);
   return s;
