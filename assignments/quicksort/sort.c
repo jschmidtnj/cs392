@@ -2,9 +2,9 @@
  * Name        : sort.c
  * Author      : Joshua Schmidt
  * Date        : 2/10/20
- * Pledge      : I pledge my honor that I have abided by the Stevens Honor
- *System. Description : Uses quicksort to sort a file of either ints, doubles,
- *or strings.
+ * Pledge      : I pledge my honor that I have abided by the Stevens Honor System.
+ * Description : Uses quicksort to sort a file of either ints, doubles,
+ * or strings.
  ******************************************************************************/
 #include <errno.h>
 #include <getopt.h>
@@ -30,10 +30,9 @@ const char *usage_message =
    filename: The file to sort.\n\
    No flags defaults to sorting strings.\n";
 
-const static int handle_error(char *error_message) {
+void handle_error(const char *error_message) {
   fprintf(stderr, error_message);
   fprintf(stderr, usage_message);
-  return EXIT_FAILURE;
 }
 
 bool get_integer(char *input, int len, int *value) {
@@ -121,6 +120,7 @@ int main(int argc, char **argv) {
   char c;
   const char *unknown_option_template =
       "Error: Unknown option '%c' received.\n";
+  const char *malloc_error_message = "Error: Problem with malloc.\n";
   char *error_message;
   while ((c = getopt(argc, argv, ":id")) != -1) {
     switch (c) {
@@ -133,13 +133,13 @@ int main(int argc, char **argv) {
       case '?':
         error_message = (char *)malloc(strlen(unknown_option_template) - 1);
         if (error_message == NULL) {
-          fprintf(stderr, "Error: Problem with malloc\n");
+          fprintf(stderr, malloc_error_message);
           return EXIT_FAILURE;
         }
         sprintf(error_message, unknown_option_template, optarg);
-        const int code = handle_error(error_message);
+        handle_error(error_message);
         free(error_message);
-        return code;
+        return EXIT_FAILURE;
       default:
         break;
     }
@@ -148,14 +148,17 @@ int main(int argc, char **argv) {
   const char * too_many_args_message = "Error: Too many arguments provided.\n";
   if (mode > 0) {
     if (argc < 3) {
-      return handle_error("Error: File not provided.\n");
+      fprintf(stderr, usage_message);
+      return EXIT_FAILURE;
     } else if (argc > 3) {
-      return handle_error(too_many_args_message);
+      handle_error(too_many_args_message);
+      return EXIT_FAILURE;
     }
     file_name = *(argv + 2);
   } else {
     if (argc > 2) {
-      return handle_error(too_many_args_message);
+      handle_error(too_many_args_message);
+      return EXIT_FAILURE;
     }
     file_name = *(argv + 1);
   }
@@ -166,13 +169,13 @@ int main(int argc, char **argv) {
     error_message =
         (char *)malloc(strlen(message_template) - 2 + strlen(file_name));
     if (error_message == NULL) {
-      fprintf(stderr, "Error: Problem with malloc\n");
+      fprintf(stderr, malloc_error_message);
       return EXIT_FAILURE;
     }
     sprintf(error_message, message_template, file_name);
-    int code = handle_error(error_message);
+    handle_error(error_message);
     free(error_message);
-    return code;
+    return EXIT_FAILURE;
   }
   size_t buffer_size;
   switch (mode) {
@@ -188,7 +191,7 @@ int main(int argc, char **argv) {
   }
   char *data = (char *)malloc(MAX_ELEMENTS * buffer_size);
   if (data == NULL) {
-    fprintf(stderr, "Error: Problem with malloc\n");
+    fprintf(stderr, malloc_error_message);
     return EXIT_FAILURE;
   }
   char *line = NULL;

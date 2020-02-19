@@ -51,7 +51,7 @@ int int_cmp(const void *a, const void *b) {
 int dbl_cmp(const void *a, const void *b) {
   double *a_dbl = (double *)a;
   double *b_dbl = (double *)b;
-  int cmp = fabs(*a_dbl - *b_dbl);
+  double cmp = fabs(*a_dbl - *b_dbl);
   if (cmp < DBL_EPSILON) {
     return 0;
   } else if (*a_dbl > *b_dbl) {

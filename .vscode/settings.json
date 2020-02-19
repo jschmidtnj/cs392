@@ -13,6 +13,7 @@
     "initializer_list": "c",
     "utility": "c",
     "valarray": "c",
-    "random": "c"
+    "random": "c",
+    "getopt.h": "c"
   }
 }
