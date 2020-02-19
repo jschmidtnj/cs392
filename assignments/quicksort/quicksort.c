@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 /* Static (private to this file) function prototypes. */
 static void swap(void *a, void *b, int size);
@@ -16,10 +17,6 @@ static int lomuto(void *array, int left, int right, size_t elem_sz,
                   int (*comp)(const void *, const void *));
 static void quicksort_helper(void *array, int left, int right, size_t elem_sz,
                              int (*comp)(const void *, const void *));
-
-#include <math.h>
-
-#define DBL_EPSILON 1e-8
 
 /**
  * Compares two integers passed in as void pointers and returns an integer

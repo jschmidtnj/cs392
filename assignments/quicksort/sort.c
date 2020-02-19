@@ -8,10 +8,13 @@
  ******************************************************************************/
 #include <errno.h>
 #include <getopt.h>
-#include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <math.h>
 
 #include "quicksort.h"
 
@@ -31,6 +34,66 @@ const static int handle_error(char *error_message) {
   fprintf(stderr, error_message);
   fprintf(stderr, usage_message);
   return EXIT_FAILURE;
+}
+
+bool get_integer(char *input, int len, int *value) {
+  int start_index = 0;
+  if (len >= 1 && *input == '-') {
+    if (len < 2) {
+      return false;
+    }
+    start_index = 1;
+  }
+  char * current_char = input;
+  for (int i = start_index; i < len; i++) {
+    if (!isdigit(*current_char)) {
+      return false;
+    }
+    current_char++;
+  }
+  long long long_long_i;
+  if (sscanf(input, "%lld", &long_long_i) == 1) {
+    *value = (int)long_long_i;
+    if (long_long_i != (long long)*value) {
+      fprintf(stderr, "Warning: Integer overflow with '%s'\n", input);
+      return false;
+    }
+  }
+  return true;
+}
+
+bool get_double(char *input, int len, double *value) {
+  int start_index = 0;
+  if (len >= 1 && *input == '-') {
+    if (len < 2) {
+      return false;
+    }
+    start_index = 1;
+  }
+  bool found_decimal = false;
+  char * current_char = input;
+  for (int i = start_index; i < len; i++) {
+    if (*current_char == '.') {
+      if (found_decimal) {
+        fprintf(stderr, "Warning: Multiple decimal places detected in '%s'\n", input);
+        return false;
+      } else {
+        found_decimal = true;
+      }
+    } else if (!isdigit(*current_char)) {
+      return false;
+    }
+    current_char++;
+  }
+  long double long_d;
+  if (sscanf(input, "%Lf", &long_d) == 1) {
+    *value = (double)long_d;
+    if (fabs(long_d - (long double)*value) > DBL_EPSILON) {
+      fprintf(stderr, "Warning: Double overflow with '%s'\n", input);
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -58,7 +121,7 @@ int main(int argc, char **argv) {
   char c;
   const char *unknown_option_template =
       "Error: Unknown option '%c' received.\n";
-  char * error_message;
+  char *error_message;
   while ((c = getopt(argc, argv, ":id")) != -1) {
     switch (c) {
       case 'i':
@@ -70,7 +133,7 @@ int main(int argc, char **argv) {
       case '?':
         error_message = (char *)malloc(strlen(unknown_option_template) - 1);
         if (error_message == NULL) {
-          printf("Error: Problem with malloc\n");
+          fprintf(stderr, "Error: Problem with malloc\n");
           return EXIT_FAILURE;
         }
         sprintf(error_message, unknown_option_template, optarg);
@@ -82,16 +145,17 @@ int main(int argc, char **argv) {
     }
   }
   char *file_name;
+  const char * too_many_args_message = "Error: Too many arguments provided.\n";
   if (mode > 0) {
     if (argc < 3) {
       return handle_error("Error: File not provided.\n");
     } else if (argc > 3) {
-      return handle_error("Error: Too many arguments provided.\n");
+      return handle_error(too_many_args_message);
     }
     file_name = *(argv + 2);
   } else {
     if (argc > 2) {
-      return handle_error("Error: Too many arguments provided.\n");
+      return handle_error(too_many_args_message);
     }
     file_name = *(argv + 1);
   }
@@ -99,9 +163,10 @@ int main(int argc, char **argv) {
   if (file == NULL) {
     const char *message_template =
         "Error: Cannot open '%s'. No such file or directory.\n";
-    error_message = (char *)malloc(strlen(message_template) - 2 + strlen(file_name));
+    error_message =
+        (char *)malloc(strlen(message_template) - 2 + strlen(file_name));
     if (error_message == NULL) {
-      printf("Error: Problem with malloc\n");
+      fprintf(stderr, "Error: Problem with malloc\n");
       return EXIT_FAILURE;
     }
     sprintf(error_message, message_template, file_name);
@@ -123,41 +188,46 @@ int main(int argc, char **argv) {
   }
   char *data = (char *)malloc(MAX_ELEMENTS * buffer_size);
   if (data == NULL) {
-    printf("Error: Problem with malloc\n");
+    fprintf(stderr, "Error: Problem with malloc\n");
     return EXIT_FAILURE;
   }
   char *line = NULL;
   size_t len;
   size_t line_count = 0;
   size_t string_buffer_size = MAX_STRLEN;
-  union
-  {
+  union {
     int data;
     char bytes[sizeof(int)];
   } int_data;
-  union
-  {
+  union {
     double data;
     char bytes[sizeof(double)];
   } double_data;
   while ((len = getline(&line, &string_buffer_size, file)) != -1) {
+    if (*(line + len - 1) == '\n') {
+      *(line + len - 1) = '\0';
+      len--;
+    }
     switch (mode) {
       case INT:
-        sscanf(line, "%d", &int_data.data);
+        if (!get_integer(line, len, &int_data.data)) {
+          fprintf(stderr, "Warning: Invalid integer found '%s'\n", line);
+          continue;
+        }
         for (int i = 0; i < buffer_size; i++) {
           *(data + line_count * buffer_size + i) = *(int_data.bytes + i);
         }
         break;
       case DOUBLE:
-        sscanf(line, "%lf", &double_data.data);
+        if (!get_double(line, len, &double_data.data)) {
+          fprintf(stderr, "Warning: Invalid double found '%s'\n", line);
+          continue;
+        }
         for (int i = 0; i < buffer_size; i++) {
           *(data + line_count * buffer_size + i) = *(double_data.bytes + i);
         }
         break;
       default:
-        if (*(line + len - 1) == '\n') {
-          len--;
-        }
         for (int i = 0; i < len; i++) {
           *(data + line_count * buffer_size + i) = *(line + i);
         }

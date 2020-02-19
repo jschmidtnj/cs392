@@ -11,6 +11,8 @@
 
 #include <stdio.h>
 
+#define DBL_EPSILON 1e-8
+
 /**
  * non-static function prototypes
  */

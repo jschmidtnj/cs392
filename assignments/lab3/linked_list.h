@@ -33,15 +33,18 @@ linked_list *create_linked_list() {
 void insert_in_order(linked_list *list, node *n,
                      int (*cmp)(const void *, const void *)) {
   if (list->num_nodes == 0) {
+    // no nodes in list - add to head
     n->next = NULL;
     n->prev = NULL;
     list->head = n;
     list->tail = n;
   } else if (cmp(list->head->data, n->data) >= 0) {
+    // the head is greater than new node - replace head
     n->next = list->head;
     n->prev = NULL;
     list->head = n;
   } else {
+    // add somewhere after in list
     node *curr = list->head;
     while (curr->next != NULL && cmp(curr->next->data, n->data) < 0) {
       curr = curr->next;
