@@ -24,15 +24,15 @@
 typedef enum { STRING, INT, DOUBLE } elem_t;
 
 const char *usage_message =
-    "Usage: ./sort [-i|-d] [filename]\n\
+    "Usage: %s [-i|-d] [filename]\n\
    -i: Specifies the file contains ints.\n\
    -d: Specifies the file contains doubles.\n\
    filename: The file to sort.\n\
    No flags defaults to sorting strings.\n";
 
-void handle_error(const char *error_message) {
+void handle_error(const char *error_message, const char * program_name) {
   fprintf(stderr, error_message);
-  fprintf(stderr, usage_message);
+  fprintf(stderr, usage_message, program_name);
 }
 
 bool get_integer(char *input, int len, int *value) {
@@ -113,7 +113,7 @@ bool get_double(char *input, int len, double *value) {
  */
 int main(int argc, char **argv) {
   if (argc <= 1) {
-    fprintf(stdout, usage_message);
+    fprintf(stdout, usage_message, argv[0]);
     return EXIT_SUCCESS;
   }
   elem_t mode = STRING;
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
           return EXIT_FAILURE;
         }
         sprintf(error_message, unknown_option_template, optarg);
-        handle_error(error_message);
+        handle_error(error_message, argv[0]);
         free(error_message);
         return EXIT_FAILURE;
       default:
@@ -148,16 +148,16 @@ int main(int argc, char **argv) {
   const char * too_many_args_message = "Error: Too many arguments provided.\n";
   if (mode > 0) {
     if (argc < 3) {
-      fprintf(stderr, usage_message);
+      fprintf(stderr, usage_message, argv[0]);
       return EXIT_FAILURE;
     } else if (argc > 3) {
-      handle_error(too_many_args_message);
+      handle_error(too_many_args_message, argv[0]);
       return EXIT_FAILURE;
     }
     file_name = *(argv + 2);
   } else {
     if (argc > 2) {
-      handle_error(too_many_args_message);
+      handle_error(too_many_args_message, argv[0]);
       return EXIT_FAILURE;
     }
     file_name = *(argv + 1);
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
       return EXIT_FAILURE;
     }
     sprintf(error_message, message_template, file_name);
-    handle_error(error_message);
+    handle_error(error_message, argv[0]);
     free(error_message);
     return EXIT_FAILURE;
   }
