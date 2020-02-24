@@ -15,7 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BUFSIZE 16384
+#define BUFSIZE 20
 #define DEFAULT_LINE_COUNT 10
 
 /**
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
   }
   printf("==> %s (%d line%s) <==\n", src_file, line_count,
          (line_count == 1 ? "" : "s"));
-  fflush(stdout);
+  fflush(stdout); // makes sure everything is written before moving on
   /* Use read() and write() to display the first n lines on the screen.
    * If n exceeds the line count of the file, display the whole file.
    * Do not use printf()!
@@ -151,16 +151,11 @@ int main(int argc, char *argv[]) {
         line_length++;
         current_index++;
       }
-      if (buf[current_index] == '\0') {
-        buf[current_index] = '\n';
-      }
       line_length++;
-      if (write(1, start_char, line_length) != line_length) {
+      if (write(STDOUT_FILENO, start_char, line_length) != line_length) {
         fprintf(stderr, "Error: Failed to write to screen. %s.\n",
                 strerror(errno));
-        free(buf);
-        close(src_fd);
-        return EXIT_FAILURE;
+        goto CLEANUP_FAILURE;
       }
       lines_written++;
       current_index++;
@@ -170,4 +165,9 @@ int main(int argc, char *argv[]) {
   free(buf);
   close(src_fd);
   return EXIT_SUCCESS;
+
+CLEANUP_FAILURE:
+  free(buf);
+  close(src_fd);
+  return EXIT_FAILURE;
 }

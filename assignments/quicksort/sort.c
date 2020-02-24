@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
   union {
     double data;
     char bytes[sizeof(double)];
-  } double_data;
+  } double_data; // next time use else if instead of switch statement
   while ((len = getline(&line, &string_buffer_size, file)) != -1) {
     if (*(line + len - 1) == '\n') {
       *(line + len - 1) = '\0';
