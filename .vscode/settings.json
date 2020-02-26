@@ -15,6 +15,7 @@
     "valarray": "c",
     "random": "c",
     "getopt.h": "c",
-    "cstring": "c"
+    "cstring": "c",
+    "variant": "c"
   }
 }
