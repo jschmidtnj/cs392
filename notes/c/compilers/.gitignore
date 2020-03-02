@@ -1,0 +1,7 @@
+# ignore executable
+main
+main.exe
+
+# ignore make outputs
+*.i
+*.s
