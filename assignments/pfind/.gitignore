@@ -1,0 +1,7 @@
+# exclude executables
+pfind
+pfind.exe
+pfind-1
+test_dir/
+danger/
+*.txt

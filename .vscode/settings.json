@@ -16,6 +16,7 @@
     "random": "c",
     "getopt.h": "c",
     "cstring": "c",
-    "variant": "c"
+    "variant": "c",
+    "stdlib.h": "c"
   }
 }
