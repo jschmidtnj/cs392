@@ -10,7 +10,7 @@ name = sort
 flags = -Wall -Werror -pedantic-errors
 
 sort: sort.o quicksort.o
-	gcc sort.o quicksort.o -o $(name)
+	gcc $(flags) sort.o quicksort.o -o $(name)
 
 sort.o: sort.c
 	gcc $(flags) -c sort.c
