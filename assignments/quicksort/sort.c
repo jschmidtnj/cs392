@@ -43,12 +43,11 @@ bool get_integer(char *input, int len, int *value) {
     }
     start_index = 1;
   }
-  char * current_char = input;
   for (int i = start_index; i < len; i++) {
-    if (!isdigit(*current_char)) {
+    char current_char = *(input + start_index);
+    if (!isdigit(current_char)) {
       return false;
     }
-    current_char++;
   }
   long long long_long_i;
   if (sscanf(input, "%lld", &long_long_i) == 1) {
@@ -70,19 +69,18 @@ bool get_double(char *input, int len, double *value) {
     start_index = 1;
   }
   bool found_decimal = false;
-  char * current_char = input;
   for (int i = start_index; i < len; i++) {
-    if (*current_char == '.') {
+    char current_char = *(input + i);
+    if (current_char == '.') {
       if (found_decimal) {
         fprintf(stderr, "Warning: Multiple decimal places detected in '%s'\n", input);
         return false;
       } else {
         found_decimal = true;
       }
-    } else if (!isdigit(*current_char)) {
+    } else if (!isdigit(current_char)) {
       return false;
     }
-    current_char++;
   }
   long double long_d;
   if (sscanf(input, "%Lf", &long_d) == 1) {
@@ -214,7 +212,7 @@ int main(int argc, char **argv) {
     switch (mode) {
       case INT:
         if (!get_integer(line, len, &int_data.data)) {
-          fprintf(stderr, "Warning: Invalid integer found '%s'\n", line);
+          fprintf(stderr, "Warning: Invalid integer found '%s'.\n", line);
           continue;
         }
         for (int i = 0; i < buffer_size; i++) {
@@ -223,7 +221,7 @@ int main(int argc, char **argv) {
         break;
       case DOUBLE:
         if (!get_double(line, len, &double_data.data)) {
-          fprintf(stderr, "Warning: Invalid double found '%s'\n", line);
+          fprintf(stderr, "Warning: Invalid double found '%s'.\n", line);
           continue;
         }
         for (int i = 0; i < buffer_size; i++) {
