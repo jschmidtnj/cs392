@@ -32,7 +32,7 @@ int main() {
   *(void **)&sum_array = dlsym(handle, "sum_array");
   if (sum_array == NULL) {
     fprintf(stderr, "Error: %s.\n", dlerror());
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
 
   int array[MAX_ARR_LEN];
