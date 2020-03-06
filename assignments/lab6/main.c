@@ -29,7 +29,7 @@ int main() {
    * fails, print the system-generated error message, and return from the
    * program with the failure exit code.
    * Heavy casting is needed to avoid errors when compiling with -pedantic. */
-  *(void **)&sum_array = dlsym(handle, "sum_array");
+  *(int **)&sum_array = dlsym(handle, "sum_array");
   if (sum_array == NULL) {
     fprintf(stderr, "Error: %s.\n", dlerror());
     return EXIT_FAILURE;
