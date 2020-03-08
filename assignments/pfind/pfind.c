@@ -90,7 +90,6 @@ char *permission_string(struct stat *statbuf) {
 
 static char * directory;
 static char * permissions;
-const char * no_directory_error_template = "Error: Cannot stat '%s'. No such file or directory.\n";
 
 /**
  * reads directories recursively, prints if permissions are compatible
@@ -99,9 +98,9 @@ void read_directory(const char * path) {
   DIR *dir;
   if ((dir = opendir(path)) == NULL) {
     if (ENOENT == errno) {
-      fprintf(stderr, no_directory_error_template, path);
+      fprintf(stderr, "Error: Cannot stat '%s'. %s.\n", path, strerror(errno));
     } else {
-      fprintf(stderr, "Error: Cannot open directory '%s': Permission denied.\n", path);
+      fprintf(stderr, "Error: Cannot open directory '%s'. Permission denied.\n", path);
     }
     exit(EXIT_FAILURE);
   }
@@ -123,16 +122,15 @@ void read_directory(const char * path) {
     strncpy(full_filename + pathlen, entry->d_name, PATH_MAX - pathlen);
     if (lstat(full_filename, &sb) < 0) {
       fprintf(stderr, "Error: Cannot stat file '%s'. %s\n", full_filename, strerror(errno));
-      continue;
+      exit(EXIT_FAILURE);
     }
+    char * current_permissions = permission_string(&sb);
+    if (!strcmp(current_permissions, permissions)) {
+      printf("%s\n", full_filename);
+    }
+    free(current_permissions);
     if (entry->d_type == DT_DIR) {
       read_directory(full_filename);
-    } else {
-      char * current_permissions = permission_string(&sb);
-      if (!strcmp(current_permissions, permissions)) {
-        printf("%s\n", full_filename);
-      }
-      free(current_permissions);
     }
   }
   closedir(dir);
@@ -176,7 +174,7 @@ int main(const int argc, char * argv[]) {
   }
   char path[PATH_MAX];
   if (realpath(directory, path) == NULL) {
-    fprintf(stderr, no_directory_error_template, directory);
+    fprintf(stderr, "Error: Cannot stat '%s'. No such file or directory.\n", directory);
     return EXIT_FAILURE;
   }
   if (!validate_permission_string(permissions)) {
