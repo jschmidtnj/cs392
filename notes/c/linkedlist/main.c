@@ -26,7 +26,6 @@ int main() {
         printf("Popped value: %s\n", (char *)front->data);
         free_node(front, free);
     }
-   
     free(list);
     return 0;
 }

@@ -27,7 +27,7 @@ void display_usage(char *progname) {
  * and others: r, w, x, or -.
  */
 char *permission_string(struct stat *statbuf) {
-  char *res = (char *)malloc(sizeof(char) * 10);
+  char *res = (char *)malloc(sizeof(char) * 11);
   char *current = res;
   *(current++) = '-';
   for (int index = 0; index < 9;) {
@@ -47,6 +47,7 @@ char *permission_string(struct stat *statbuf) {
       *(current++) = '-';
     }
   }
+  *current = '\0';
   return res;
 }
 
