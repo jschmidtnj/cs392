@@ -94,7 +94,7 @@ static char * permissions;
 /**
  * reads directories recursively, prints if permissions are compatible
  */
-void read_directory(const char * path) {
+int read_directory(const char * path) {
   DIR *dir;
   if ((dir = opendir(path)) == NULL) {
     if (ENOENT == errno) {
@@ -102,7 +102,7 @@ void read_directory(const char * path) {
     } else {
       fprintf(stderr, "Error: Cannot open directory '%s'. Permission denied.\n", path);
     }
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
   char full_filename[PATH_MAX];
   full_filename[0] = '\0';
@@ -122,7 +122,7 @@ void read_directory(const char * path) {
     strncpy(full_filename + pathlen, entry->d_name, PATH_MAX - pathlen);
     if (lstat(full_filename, &sb) < 0) {
       fprintf(stderr, "Error: Cannot stat file '%s'. %s\n", full_filename, strerror(errno));
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
     char * current_permissions = permission_string(&sb);
     if (!strcmp(current_permissions, permissions)) {
@@ -134,6 +134,7 @@ void read_directory(const char * path) {
     }
   }
   closedir(dir);
+  return EXIT_SUCCESS;
 }
 
 int main(const int argc, char * argv[]) {
@@ -181,6 +182,5 @@ int main(const int argc, char * argv[]) {
     fprintf(stderr, "Error: Permissions string '%s' is invalid.\n", permissions);
     return EXIT_FAILURE;
   }
-  read_directory(path);
-  return EXIT_SUCCESS;
+  return read_directory(path);
 }
