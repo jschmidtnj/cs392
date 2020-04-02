@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#define READ_BUFFER_SIZE 128
+#define READ_BUFFER_SIZE 256
 #define PFIND_EXE "./pfind"
 
 /**
@@ -30,6 +30,33 @@ void print_usage_message(bool error, const char *executable) {
   } else {
     fprintf(stdout, usage_message, executable);
   }
+}
+
+/**
+ * check if permissions string is valid
+ */
+bool validate_permission_string(const char * permission_string) {
+  if (strlen(permission_string) != 9) {
+    return false;
+  }
+  for (int i = 0, j = 0; i < 9; i++) {
+    char current_level;
+    if (j == 0) {
+      current_level = 'r';
+      j++;
+    } else if (j == 1) {
+      current_level = 'w';
+      j++;
+    } else {
+      current_level = 'x';
+      j = 0;
+    }
+    char current_permission = *(permission_string + i);
+    if (current_permission != current_level && current_permission != '-') {
+      return false;
+    }
+  }
+  return true;
 }
 
 int main(int argc, char *argv[]) {
@@ -76,6 +103,10 @@ int main(int argc, char *argv[]) {
             "Error: Required argument -p <permissions string> not found.\n");
     return EXIT_FAILURE;
   }
+  if (!validate_permission_string(permissions)) {
+    fprintf(stderr, "Error: Permissions string '%s' is invalid.\n", permissions);
+    return EXIT_FAILURE;
+  }
   int sort_to_parent[2], pfind_to_sort[2];
   if (pipe(sort_to_parent) == -1) {
     fprintf(stderr, "Error: Problem opening pipe from sort to parent. %s\n", strerror(errno));
@@ -102,7 +133,7 @@ int main(int argc, char *argv[]) {
       }
       // normally check output for correctness
       if (execlp(PFIND_EXE, PFIND_EXE, "-d", directory, "-p", permissions, NULL) == -1) {
-        // fprintf(stderr, "Error: problem with execlp on pfind. %s\n", strerror(errno));
+        fprintf(stderr, "Error: problem with execlp on pfind. %s\n", strerror(errno));
         exit(EXIT_FAILURE);
       }
     } else if (pid > 0) {
@@ -112,7 +143,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error: Problem with wait for pfind. %s\n", strerror(errno));
         exit(EXIT_FAILURE);
       }
-      if (status != EXIT_SUCCESS) {
+      if (WEXITSTATUS(status) != EXIT_SUCCESS) {
         fprintf(stderr, "Error: pfind failed\n");
         exit(EXIT_FAILURE);
       }
@@ -134,7 +165,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
       }
       if (execlp("sort", "sort", NULL) == -1) {
-        // fprintf(stderr, "Error: Problem with execlp on sort. %s\n", strerror(errno));
+        fprintf(stderr, "Error: Problem with execlp on sort. %s\n", strerror(errno));
         exit(EXIT_FAILURE);
       }
     } else {
@@ -149,7 +180,7 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Error: Problem with wait for sort. %s\n", strerror(errno));
       exit(EXIT_FAILURE);
     }
-    if (status != EXIT_SUCCESS) {
+    if (WEXITSTATUS(status) != EXIT_SUCCESS) {
       fprintf(stderr, "Error: sort failed\n");
       exit(EXIT_FAILURE);
     }
@@ -175,14 +206,15 @@ int main(int argc, char *argv[]) {
           current_index++;
         }
         if (current_index != bytes_read) {
+          // hit new line
           line_length++;
+          total_count++;
         }
         if (write(STDOUT_FILENO, start_char, line_length) != line_length) {
           fprintf(stderr, "Error: Failed to write to screen. %s.\n",
                   strerror(errno));
           return EXIT_FAILURE;
         }
-        total_count++;
         current_index++;
       }
     }
