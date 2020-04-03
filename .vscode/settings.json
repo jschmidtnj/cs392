@@ -18,6 +18,12 @@
     "cstring": "c",
     "variant": "c",
     "stdlib.h": "c",
-    "errno.h": "c"
+    "errno.h": "c",
+    "signal.h": "c",
+    "limits.h": "c",
+    "climits": "c",
+    "atomic_base.h": "c",
+    "stdio.h": "c",
+    "stdbool.h": "c"
   }
 }

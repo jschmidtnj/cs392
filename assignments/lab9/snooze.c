@@ -6,12 +6,12 @@
  * Description : snooze for n seconds
  ******************************************************************************/
 
+#include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
 
 volatile sig_atomic_t got_signal = 0;
@@ -60,7 +60,8 @@ int main(int argc, char *argv[]) {
   action.sa_handler = catch_signal;
   action.sa_flags = SIGINT;
   if (sigaction(SIGINT, &action, NULL) == -1) {
-    fprintf(stderr, "Error: problem registering sigaction. %s\n", strerror(errno));
+    fprintf(stderr, "Error: problem registering sigaction. %s\n",
+            strerror(errno));
     return EXIT_FAILURE;
   }
 
@@ -73,6 +74,7 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
-  printf("Slept for %d of the %d seconds allowed.\n", seconds_slept, sleep_secs);
+  printf("Slept for %d of the %d seconds allowed.\n", seconds_slept,
+         sleep_secs);
   return EXIT_SUCCESS;
 }
