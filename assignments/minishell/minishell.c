@@ -135,8 +135,14 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
   while (*(full_args + current_index) == ' ') {
     current_index++;
   }
-  if (*(full_args + current_index) == '~') {
-    current_index++;
+  int arg_len = 0;
+  // no quote found
+  if (*(full_args + current_index) != '"') {
+    int start_index = current_index;
+    while (current_index < len && *(full_args + current_index) != ' ') {
+      arg_len++;
+      current_index++;
+    }
     for (; current_index < len; current_index++) {
       if (*(full_args + current_index) != ' ') {
         fprintf(stderr, "%sError: Too many arguments found for cd.\n",
@@ -146,24 +152,19 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
       }
     }
     // home directory
-    if ((res.argument = (char *)malloc(sizeof(char) * (2))) == NULL) {
+    if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + 1))) == NULL) {
       print_malloc_failed();
       res.exit_status = EXIT_FAILURE;
       return res;
     }
-    *(res.argument) = '~';
-    *(res.argument + 1) = '\0';
+    memcpy(res.argument, full_args + start_index, arg_len);
+    *(res.argument + arg_len) = '\0';
     res.exit_status = EXIT_SUCCESS;
     return res;
-  } else if (*(full_args + current_index) != '"') {
-    fprintf(stderr, "%sError: No first parenthesis found for cd.\n",
-            ERROR_COLOR);
-    res.exit_status = EXIT_WARNING;
-    return res;
   }
+  // found parenthesis
   current_index++;
   int start_index = current_index;
-  int arg_len = 0;
   bool last_escape = false;
   bool found_closing = false;
   for (; current_index < len; current_index++) {
@@ -182,7 +183,7 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
     }
   }
   if (!found_closing) {
-    fprintf(stderr, "%sError: No closing parenthesis found for cd.\n",
+    fprintf(stderr, "%sError: No closing quote found for cd.\n",
             ERROR_COLOR);
     res.exit_status = EXIT_WARNING;
     return res;
