@@ -272,7 +272,7 @@ int main() {
     free(current_dir_res.current_directory);
     return EXIT_FAILURE;
   }
-  memcpy(last_cd_path, current_dir_res.current_directory, PATH_MAX);
+  bool last_cd_path_set = false;
 
   sigsetjmp(jmp_prompt, 1);
   ssize_t prompt_input_len;
@@ -310,12 +310,16 @@ int main() {
         goto CLEANUP_FAILURE;
       } else if (cd_process_res.exit_status == EXIT_SUCCESS) {
         char * cd_to;
+        bool cd_old_path = false;
         if (strcmp(cd_process_res.argument, "-") == 0) {
+          cd_old_path = true;
           cd_to = last_cd_path;
         } else {
           cd_to = cd_process_res.argument;
         }
-        if (strcmp(cd_to, "~") == 0) {
+        if (cd_old_path && !last_cd_path_set) {
+          fprintf(stderr, "%sError: cd OLDPWD not set.\n", ERROR_COLOR);
+        } else if (strcmp(cd_to, "~") == 0) {
           if (chdir(pwuid->pw_dir) == -1) {
             print_change_dir_failed(cd_to);
           } else {
@@ -331,12 +335,16 @@ int main() {
         free(cd_process_res.argument);
         if (get_dir) {
           last_cd_path = memcpy(last_cd_path, current_dir_res.current_directory, PATH_MAX);
+          last_cd_path_set = true;
           free(current_dir_res.current_directory);
           current_dir_res = get_current_dir();
           if (current_dir_res.exit_status != EXIT_SUCCESS) {
             goto CLEANUP_FAILURE;
           }
           get_dir = false;
+        }
+        if (cd_old_path && last_cd_path_set) {
+          printf("%s%s\n", DEFAULT_COLOR, current_dir_res.current_directory);
         }
       }
     } else {
