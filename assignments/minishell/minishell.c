@@ -75,6 +75,7 @@ struct process_input_str_res {
   int exit_status;
   char **arguments;
   int num_arguments;
+
 };
 
 struct process_input_str_res process_input(const char *input_str,
@@ -83,8 +84,17 @@ struct process_input_str_res process_input(const char *input_str,
   int num_args = 0;
   char **args;
   int current_arg_index = 0;
+  int current_parse_index = 0;
+  while (current_parse_index < *input_str_len &&
+          *(input_str + current_parse_index) == ' ') {
+    current_parse_index++;
+  }
+  if (current_parse_index == *input_str_len) {
+    res.exit_status = EXIT_WARNING;
+    res.num_arguments = 0;
+    return res;
+  }
   for (int i = 0; i < 2; i++) {
-    int current_parse_index = 0;
     while (current_parse_index < *input_str_len) {
       int arg_len = 0;
       int start_index = current_parse_index;
@@ -128,6 +138,7 @@ struct process_input_str_res process_input(const char *input_str,
     } else {
       *(args + num_args) = NULL;
     }
+    current_parse_index = 0;
   }
   res.exit_status = EXIT_SUCCESS;
   res.arguments = args;
@@ -354,8 +365,10 @@ int main() {
         int input_len = (int)prompt_input_len;
         struct process_input_str_res process_res =
             process_input(prompt_input, &input_len);
-        if (process_res.exit_status != EXIT_SUCCESS) {
+        if (process_res.exit_status == EXIT_FAILURE) {
           goto CLEANUP_FAILURE;
+        } else if (process_res.exit_status == EXIT_WARNING) {
+          goto CLEANUP_SUCCESS;
         }
         int exec_status =
             execvp(process_res.arguments[0], process_res.arguments);
@@ -377,10 +390,9 @@ int main() {
                   strerror(errno));
           goto CLEANUP_FAILURE;
         }
-        if (WEXITSTATUS(status) != EXIT_SUCCESS) {
-          goto CLEANUP_FAILURE;
+        if (WEXITSTATUS(status) == EXIT_SUCCESS) {
+          get_dir = true;
         }
-        get_dir = true;
       } else {
         fprintf(stderr, "%sError: fork() failed. %s\n", ERROR_COLOR,
                 strerror(errno));
