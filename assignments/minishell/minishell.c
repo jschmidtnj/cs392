@@ -34,13 +34,7 @@ void catch_signal() {
   siglongjmp(jmp_prompt, 1);
 }
 
-int print_prompt() {
-  char cwd[PATH_MAX];
-  if ((getcwd(cwd, PATH_MAX) == NULL)) {
-    fprintf(stderr, "%sError: Cannot get current working directory. %s\n",
-            ERROR_COLOR, strerror(errno));
-    return EXIT_FAILURE;
-  }
+int print_prompt(char * cwd) {
   printf("%s[%s%s%s]$ ", DEFAULT_COLOR, BRIGHT_BLUE, cwd, DEFAULT_COLOR);
   return EXIT_SUCCESS;
 }
@@ -53,6 +47,28 @@ void print_malloc_failed() {
 void print_change_dir_failed(const char *dir) {
   fprintf(stderr, "%sCannot change directory to '%s'. %s.\n", ERROR_COLOR, dir,
           strerror(errno));
+}
+
+struct get_dir_res {
+  int exit_status;
+  char * current_directory;
+};
+
+struct get_dir_res get_current_dir() {
+  struct get_dir_res res;
+  if ((res.current_directory = (char *)malloc(sizeof(char) * PATH_MAX)) == NULL) {
+    print_malloc_failed();
+    res.exit_status = EXIT_FAILURE;
+    return res;
+  }
+  if ((getcwd(res.current_directory, PATH_MAX) == NULL)) {
+    fprintf(stderr, "%sError: Cannot get current working directory. %s\n",
+            ERROR_COLOR, strerror(errno));
+    res.exit_status = EXIT_FAILURE;
+    return res;
+  }
+  res.exit_status = EXIT_SUCCESS;
+  return res;
 }
 
 struct process_input_str_res {
@@ -128,12 +144,24 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
   struct process_cd_res res;
   int current_index = 0;
   // handle cd
-  while (*(full_args + current_index) != ' ') {
+  while (current_index < len && *(full_args + current_index) != ' ') {
     current_index++;
   }
   // handle spaces
-  while (*(full_args + current_index) == ' ') {
+  while (current_index < len && *(full_args + current_index) == ' ') {
     current_index++;
+  }
+  // no args provided
+  if (current_index == len) {
+    if ((res.argument = (char *)malloc(sizeof(char) * 2)) == NULL) {
+      print_malloc_failed();
+      res.exit_status = EXIT_FAILURE;
+      return res;
+    }
+    *(res.argument) = '.';
+    *(res.argument + 1) = '\0';
+    res.exit_status = EXIT_SUCCESS;
+    return res;
   }
   int arg_len = 0;
   // no quote found
@@ -151,7 +179,6 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
         return res;
       }
     }
-    // home directory
     if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + 1))) == NULL) {
       print_malloc_failed();
       res.exit_status = EXIT_FAILURE;
@@ -219,17 +246,47 @@ int main() {
     return EXIT_FAILURE;
   }
 
+  uid_t uid = getuid();
+  struct passwd *pwuid;
+  if ((pwuid = getpwuid(uid)) == NULL) {
+    fprintf(stderr, "%sCannot get passwd entry. %s\n", ERROR_COLOR,
+            strerror(errno));
+    return EXIT_FAILURE;
+  }
+
   size_t max_prompt_size = ARG_MAX;
   char *prompt_input = (char *)malloc(sizeof(char) * ARG_MAX);
   if (prompt_input == NULL) {
     print_malloc_failed();
     return EXIT_FAILURE;
   }
+  struct get_dir_res current_dir_res = get_current_dir();
+  if (current_dir_res.exit_status != EXIT_SUCCESS) {
+    free(prompt_input);
+    return EXIT_FAILURE;
+  }
+  char * last_cd_path = (char *)malloc(sizeof(char) * PATH_MAX);
+  if (prompt_input == NULL) {
+    print_malloc_failed();
+    free(prompt_input);
+    free(current_dir_res.current_directory);
+    return EXIT_FAILURE;
+  }
+  memcpy(last_cd_path, current_dir_res.current_directory, PATH_MAX);
 
   sigsetjmp(jmp_prompt, 1);
   ssize_t prompt_input_len;
+  bool get_dir = false;
   while (true) {
-    if (print_prompt() == EXIT_FAILURE) {
+    if (get_dir) {
+      free(current_dir_res.current_directory);
+      current_dir_res = get_current_dir();
+      if (current_dir_res.exit_status != EXIT_SUCCESS) {
+        goto CLEANUP_FAILURE;
+      }
+      get_dir = false;
+    }
+    if (print_prompt(current_dir_res.current_directory) == EXIT_FAILURE) {
       goto CLEANUP_FAILURE;
     }
     if ((prompt_input_len = getline(&prompt_input, &max_prompt_size, stdin)) ==
@@ -247,28 +304,40 @@ int main() {
     } else if (strcmp(prompt_input, "exit") == 0) {
       goto CLEANUP_SUCCESS;
     } else if (strncmp(prompt_input, "cd", 2) == 0) {
-      uid_t uid = getuid();
-      struct passwd *pwuid;
-      if ((pwuid = getpwuid(uid)) == NULL) {
-        fprintf(stderr, "%sCannot get passwd entry. %s\n", ERROR_COLOR,
-                strerror(errno));
-        goto CLEANUP_FAILURE;
-      }
       struct process_cd_res cd_process_res =
           get_cd_arg(prompt_input, prompt_input_len);
       if (cd_process_res.exit_status == EXIT_FAILURE) {
         goto CLEANUP_FAILURE;
       } else if (cd_process_res.exit_status == EXIT_SUCCESS) {
-        if (strcmp(cd_process_res.argument, "~") == 0) {
+        char * cd_to;
+        if (strcmp(cd_process_res.argument, "-") == 0) {
+          cd_to = last_cd_path;
+        } else {
+          cd_to = cd_process_res.argument;
+        }
+        if (strcmp(cd_to, "~") == 0) {
           if (chdir(pwuid->pw_dir) == -1) {
-            print_change_dir_failed(cd_process_res.argument);
+            print_change_dir_failed(cd_to);
+          } else {
+            get_dir = true;
           }
         } else {
-          if (chdir(cd_process_res.argument) == -1) {
-            print_change_dir_failed(cd_process_res.argument);
+          if (chdir(cd_to) == -1) {
+            print_change_dir_failed(cd_to);
+          } else {
+            get_dir = true;
           }
         }
         free(cd_process_res.argument);
+        if (get_dir) {
+          last_cd_path = memcpy(last_cd_path, current_dir_res.current_directory, PATH_MAX);
+          free(current_dir_res.current_directory);
+          current_dir_res = get_current_dir();
+          if (current_dir_res.exit_status != EXIT_SUCCESS) {
+            goto CLEANUP_FAILURE;
+          }
+          get_dir = false;
+        }
       }
     } else {
       pid_t pid;
@@ -303,6 +372,7 @@ int main() {
         if (WEXITSTATUS(status) != EXIT_SUCCESS) {
           goto CLEANUP_FAILURE;
         }
+        get_dir = true;
       } else {
         fprintf(stderr, "%sError: fork() failed. %s\n", ERROR_COLOR,
                 strerror(errno));
@@ -312,8 +382,12 @@ int main() {
   }
 CLEANUP_SUCCESS:
   free(prompt_input);
+  free(last_cd_path);
+  free(current_dir_res.current_directory);
   return EXIT_SUCCESS;
 CLEANUP_FAILURE:
   free(prompt_input);
+  free(last_cd_path);
+  free(current_dir_res.current_directory);
   return EXIT_FAILURE;
 }
