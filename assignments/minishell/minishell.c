@@ -49,6 +49,46 @@ void print_change_dir_failed(const char *dir) {
           strerror(errno));
 }
 
+typedef struct trim_whitespace_res {
+  int exit_status;
+  char *trimmed;
+  int length;
+} trim_whitespace_res;
+
+trim_whitespace_res trim_whitespace(const char *original,
+                                    const int *original_length) {
+  trim_whitespace_res res;
+  int start_index = 0;
+  int current_index = 0;
+  while (current_index < *original_length &&
+         *(original + current_index) == ' ') {
+    current_index++;
+  }
+  start_index = current_index;
+  int end_index;
+  if (current_index == *original_length) {
+    end_index = start_index;
+  } else {
+    while (current_index < *original_length) {
+      if (*(original + current_index) != ' ') {
+        end_index = current_index + 1;
+      }
+      current_index++;
+    }
+  }
+  int arg_len = end_index - start_index;
+  if ((res.trimmed = (char *)malloc(sizeof(char) * (arg_len + 1))) == NULL) {
+    print_malloc_failed();
+    res.exit_status = EXIT_FAILURE;
+    return res;
+  }
+  memcpy(res.trimmed, original + start_index, arg_len);
+  *(res.trimmed + arg_len) = '\0';
+  res.length = arg_len;
+  res.exit_status = EXIT_SUCCESS;
+  return res;
+}
+
 typedef struct get_dir_res {
   int exit_status;
   char *current_directory;
@@ -85,15 +125,6 @@ process_input_str_res process_input(const char *input_str,
   char **args;
   int current_arg_index = 0;
   int current_parse_index = 0;
-  while (current_parse_index < *input_str_len &&
-         *(input_str + current_parse_index) == ' ') {
-    current_parse_index++;
-  }
-  if (current_parse_index == *input_str_len) {
-    res.exit_status = EXIT_WARNING;
-    res.num_arguments = 0;
-    return res;
-  }
   for (int i = 0; i < 2; i++) {
     while (current_parse_index < *input_str_len) {
       int arg_len = 0;
@@ -203,21 +234,12 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
   // found parenthesis
   current_index++;
   int start_index = current_index;
-  bool last_escape = false;
   bool found_closing = false;
+  int end_index;
   for (; current_index < len; current_index++) {
-    if (*(full_args + current_index) == '\\') {
-      arg_len++;
-      last_escape = true;
-      continue;
-    } else {
-      last_escape = false;
-    }
-    if (*(full_args + current_index) == '"' && !last_escape) {
+    if (*(full_args + current_index) == '"') {
+      end_index = current_index;
       found_closing = true;
-      break;
-    } else {
-      arg_len++;
     }
   }
   if (!found_closing) {
@@ -225,8 +247,7 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
     res.exit_status = EXIT_WARNING;
     return res;
   }
-  current_index++;
-  for (; current_index < len; current_index++) {
+  for (current_index = end_index + 1; current_index < len; current_index++) {
     if (*(full_args + current_index) != ' ') {
       fprintf(stderr, "%sError: Too many arguments found for cd.\n",
               ERROR_COLOR);
@@ -234,6 +255,7 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
       return res;
     }
   }
+  arg_len = end_index - start_index;
   if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + 1))) == NULL) {
     print_malloc_failed();
     res.exit_status = EXIT_FAILURE;
@@ -265,27 +287,26 @@ int main() {
   }
 
   size_t max_prompt_size = ARG_MAX;
-  char *prompt_input = (char *)malloc(sizeof(char) * ARG_MAX);
-  if (prompt_input == NULL) {
+  char *full_prompt_input = (char *)malloc(sizeof(char) * ARG_MAX);
+  if (full_prompt_input == NULL) {
     print_malloc_failed();
     return EXIT_FAILURE;
   }
   get_dir_res current_dir_res = get_current_dir();
   if (current_dir_res.exit_status != EXIT_SUCCESS) {
-    free(prompt_input);
+    free(full_prompt_input);
     return EXIT_FAILURE;
   }
   char *last_cd_path = (char *)malloc(sizeof(char) * PATH_MAX);
-  if (prompt_input == NULL) {
+  if (last_cd_path == NULL) {
     print_malloc_failed();
-    free(prompt_input);
+    free(full_prompt_input);
     free(current_dir_res.current_directory);
     return EXIT_FAILURE;
   }
   bool last_cd_path_set = false;
 
   sigsetjmp(jmp_prompt, 1);
-  ssize_t prompt_input_len;
   bool get_dir = false;
   while (true) {
     if (get_dir) {
@@ -299,23 +320,33 @@ int main() {
     if (print_prompt(current_dir_res.current_directory) == EXIT_FAILURE) {
       goto CLEANUP_FAILURE;
     }
-    if ((prompt_input_len = getline(&prompt_input, &max_prompt_size, stdin)) ==
-        -1) {
+    int full_prompt_input_len;
+    if ((full_prompt_input_len =
+             getline(&full_prompt_input, &max_prompt_size, stdin)) == -1) {
       fprintf(stderr, "%sError: Problem with getline. %s\n", ERROR_COLOR,
               strerror(errno));
       goto CLEANUP_FAILURE;
     }
-    if (*(prompt_input + prompt_input_len - 1) == '\n') {
-      *(prompt_input + prompt_input_len - 1) = '\0';
-      prompt_input_len--;
+    if (*(full_prompt_input + full_prompt_input_len - 1) == '\n') {
+      *(full_prompt_input + full_prompt_input_len - 1) = '\0';
+      full_prompt_input_len--;
     }
-    if (prompt_input_len == 0) {
+    trim_whitespace_res trim_res =
+        trim_whitespace(full_prompt_input, &full_prompt_input_len);
+    if (trim_res.exit_status != EXIT_SUCCESS) {
+      goto CLEANUP_FAILURE;
+    }
+    if (trim_res.length == 0) {
+      free(trim_res.trimmed);
       continue;
-    } else if (strcmp(prompt_input, "exit") == 0) {
+    } else if (strcmp(trim_res.trimmed, "exit") == 0) {
+      free(trim_res.trimmed);
       goto CLEANUP_SUCCESS;
-    } else if (strncmp(prompt_input, "cd", 2) == 0) {
+    } else if ((trim_res.length == 2 && strcmp(trim_res.trimmed, "cd") == 0) ||
+               (strncmp(trim_res.trimmed, "cd ", 3) == 0)) {
       process_cd_res cd_process_res =
-          get_cd_arg(prompt_input, prompt_input_len);
+          get_cd_arg(trim_res.trimmed, trim_res.length);
+      free(trim_res.trimmed);
       if (cd_process_res.exit_status == EXIT_FAILURE) {
         goto CLEANUP_FAILURE;
       } else if (cd_process_res.exit_status == EXIT_SUCCESS) {
@@ -362,9 +393,9 @@ int main() {
       pid_t pid;
       if ((pid = fork()) == 0) {
         // in child process
-        int input_len = (int)prompt_input_len;
         process_input_str_res process_res =
-            process_input(prompt_input, &input_len);
+            process_input(trim_res.trimmed, &trim_res.length);
+        free(trim_res.trimmed);
         if (process_res.exit_status == EXIT_FAILURE) {
           goto CLEANUP_FAILURE;
         } else if (process_res.exit_status == EXIT_WARNING) {
@@ -382,6 +413,7 @@ int main() {
           goto CLEANUP_FAILURE;
         }
       } else if (pid > 0) {
+        free(trim_res.trimmed);
         // parent process
         int status;
         // wait for exec to finish
@@ -394,6 +426,7 @@ int main() {
           get_dir = true;
         }
       } else {
+        free(trim_res.trimmed);
         fprintf(stderr, "%sError: fork() failed. %s\n", ERROR_COLOR,
                 strerror(errno));
         goto CLEANUP_FAILURE;
@@ -401,12 +434,12 @@ int main() {
     }
   }
 CLEANUP_SUCCESS:
-  free(prompt_input);
+  free(full_prompt_input);
   free(last_cd_path);
   free(current_dir_res.current_directory);
   return EXIT_SUCCESS;
 CLEANUP_FAILURE:
-  free(prompt_input);
+  free(full_prompt_input);
   free(last_cd_path);
   free(current_dir_res.current_directory);
   return EXIT_FAILURE;

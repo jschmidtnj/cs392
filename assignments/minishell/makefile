@@ -9,7 +9,7 @@
 CC     = gcc
 C_FILE = minishell.c
 TARGET = minishell
-CFLAGS = -Wall -Werror -pedantic-errors
+CFLAGS = -g -Wall -Werror -pedantic-errors
 
 all: minishell.c
 	$(CC) $(CFLAGS) $(C_FILE) -o $(TARGET)
