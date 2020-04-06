@@ -34,7 +34,7 @@ void catch_signal() {
   siglongjmp(jmp_prompt, 1);
 }
 
-int print_prompt(char * cwd) {
+int print_prompt(char *cwd) {
   printf("%s[%s%s%s]$ ", DEFAULT_COLOR, BRIGHT_BLUE, cwd, DEFAULT_COLOR);
   return EXIT_SUCCESS;
 }
@@ -51,12 +51,13 @@ void print_change_dir_failed(const char *dir) {
 
 struct get_dir_res {
   int exit_status;
-  char * current_directory;
+  char *current_directory;
 };
 
 struct get_dir_res get_current_dir() {
   struct get_dir_res res;
-  if ((res.current_directory = (char *)malloc(sizeof(char) * PATH_MAX)) == NULL) {
+  if ((res.current_directory = (char *)malloc(sizeof(char) * PATH_MAX)) ==
+      NULL) {
     print_malloc_failed();
     res.exit_status = EXIT_FAILURE;
     return res;
@@ -75,7 +76,6 @@ struct process_input_str_res {
   int exit_status;
   char **arguments;
   int num_arguments;
-
 };
 
 struct process_input_str_res process_input(const char *input_str,
@@ -86,7 +86,7 @@ struct process_input_str_res process_input(const char *input_str,
   int current_arg_index = 0;
   int current_parse_index = 0;
   while (current_parse_index < *input_str_len &&
-          *(input_str + current_parse_index) == ' ') {
+         *(input_str + current_parse_index) == ' ') {
     current_parse_index++;
   }
   if (current_parse_index == *input_str_len) {
@@ -169,7 +169,7 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
       res.exit_status = EXIT_FAILURE;
       return res;
     }
-    *(res.argument) = '.';
+    *(res.argument) = '~';
     *(res.argument + 1) = '\0';
     res.exit_status = EXIT_SUCCESS;
     return res;
@@ -221,8 +221,7 @@ struct process_cd_res get_cd_arg(const char *full_args, const int len) {
     }
   }
   if (!found_closing) {
-    fprintf(stderr, "%sError: No closing quote found for cd.\n",
-            ERROR_COLOR);
+    fprintf(stderr, "%sError: No closing quote found for cd.\n", ERROR_COLOR);
     res.exit_status = EXIT_WARNING;
     return res;
   }
@@ -276,7 +275,7 @@ int main() {
     free(prompt_input);
     return EXIT_FAILURE;
   }
-  char * last_cd_path = (char *)malloc(sizeof(char) * PATH_MAX);
+  char *last_cd_path = (char *)malloc(sizeof(char) * PATH_MAX);
   if (prompt_input == NULL) {
     print_malloc_failed();
     free(prompt_input);
@@ -320,7 +319,7 @@ int main() {
       if (cd_process_res.exit_status == EXIT_FAILURE) {
         goto CLEANUP_FAILURE;
       } else if (cd_process_res.exit_status == EXIT_SUCCESS) {
-        char * cd_to;
+        char *cd_to;
         bool cd_old_path = false;
         if (strcmp(cd_process_res.argument, "-") == 0) {
           cd_old_path = true;
@@ -345,7 +344,8 @@ int main() {
         }
         free(cd_process_res.argument);
         if (get_dir) {
-          last_cd_path = memcpy(last_cd_path, current_dir_res.current_directory, PATH_MAX);
+          last_cd_path =
+              memcpy(last_cd_path, current_dir_res.current_directory, PATH_MAX);
           last_cd_path_set = true;
           free(current_dir_res.current_directory);
           current_dir_res = get_current_dir();
