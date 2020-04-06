@@ -49,13 +49,13 @@ void print_change_dir_failed(const char *dir) {
           strerror(errno));
 }
 
-struct get_dir_res {
+typedef struct get_dir_res {
   int exit_status;
   char *current_directory;
-};
+} get_dir_res;
 
-struct get_dir_res get_current_dir() {
-  struct get_dir_res res;
+get_dir_res get_current_dir() {
+  get_dir_res res;
   if ((res.current_directory = (char *)malloc(sizeof(char) * PATH_MAX)) ==
       NULL) {
     print_malloc_failed();
@@ -72,15 +72,15 @@ struct get_dir_res get_current_dir() {
   return res;
 }
 
-struct process_input_str_res {
+typedef struct process_input_str_res {
   int exit_status;
   char **arguments;
   int num_arguments;
-};
+} process_input_str_res;
 
-struct process_input_str_res process_input(const char *input_str,
-                                           const int *input_str_len) {
-  struct process_input_str_res res;
+process_input_str_res process_input(const char *input_str,
+                                    const int *input_str_len) {
+  process_input_str_res res;
   int num_args = 0;
   char **args;
   int current_arg_index = 0;
@@ -146,13 +146,13 @@ struct process_input_str_res process_input(const char *input_str,
   return res;
 }
 
-struct process_cd_res {
+typedef struct process_cd_res {
   int exit_status;
   char *argument;
-};
+} process_cd_res;
 
-struct process_cd_res get_cd_arg(const char *full_args, const int len) {
-  struct process_cd_res res;
+process_cd_res get_cd_arg(const char *full_args, const int len) {
+  process_cd_res res;
   int current_index = 0;
   // handle cd
   while (current_index < len && *(full_args + current_index) != ' ') {
@@ -270,7 +270,7 @@ int main() {
     print_malloc_failed();
     return EXIT_FAILURE;
   }
-  struct get_dir_res current_dir_res = get_current_dir();
+  get_dir_res current_dir_res = get_current_dir();
   if (current_dir_res.exit_status != EXIT_SUCCESS) {
     free(prompt_input);
     return EXIT_FAILURE;
@@ -314,7 +314,7 @@ int main() {
     } else if (strcmp(prompt_input, "exit") == 0) {
       goto CLEANUP_SUCCESS;
     } else if (strncmp(prompt_input, "cd", 2) == 0) {
-      struct process_cd_res cd_process_res =
+      process_cd_res cd_process_res =
           get_cd_arg(prompt_input, prompt_input_len);
       if (cd_process_res.exit_status == EXIT_FAILURE) {
         goto CLEANUP_FAILURE;
@@ -363,7 +363,7 @@ int main() {
       if ((pid = fork()) == 0) {
         // in child process
         int input_len = (int)prompt_input_len;
-        struct process_input_str_res process_res =
+        process_input_str_res process_res =
             process_input(prompt_input, &input_len);
         if (process_res.exit_status == EXIT_FAILURE) {
           goto CLEANUP_FAILURE;
