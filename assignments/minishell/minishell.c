@@ -21,9 +21,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define BRIGHT_BLUE "\x1b[34;1m"
+#define BRIGHT_BLUE "\x1b[1;34m"
 #define DEFAULT_COLOR "\x1b[0m"
-#define ERROR_COLOR "\x1b[0m"
+#define ACCENT_COLOR "\x1b[0;32m"
+#define ERROR_COLOR "\x1b[0;31m"
 
 #define EXIT_WARNING -1
 
@@ -35,7 +36,8 @@ void catch_signal() {
 }
 
 int print_prompt(char *cwd) {
-  printf("%s[%s%s%s]$ ", DEFAULT_COLOR, BRIGHT_BLUE, cwd, DEFAULT_COLOR);
+  printf("%s[%s%s%s]$ %s", ACCENT_COLOR, BRIGHT_BLUE, cwd, ACCENT_COLOR,
+         DEFAULT_COLOR);
   return EXIT_SUCCESS;
 }
 
