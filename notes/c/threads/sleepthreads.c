@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -5,7 +7,40 @@
 #include <string.h>
 #include <unistd.h>
 
-void *sleep_print(void *ptr) { pthread_exit(NULL); }
+#define SCALE_FACTOR 1000000
+#define MIN_SLEEP 1
+#define MAX_SLEEP 5
+
+int num_running = 0;
+
+pthread_mutex_t lock;
+
+// generate random int between low and high inclusive
+int random_int_in_range(const int low, const int high) {
+  return low + rand() % (high - low + 1);
+}
+
+void *sleep_print(void *ptr) {
+  int *thread_num = (int *)ptr;
+  long tid = (long)pthread_self();
+  // 16 least significant bits or shifted tid by 16
+  srand((time(NULL) & 0xFFFF) | (tid << 16));
+  useconds_t sleep_time = (useconds_t)random_int_in_range(
+      MIN_SLEEP * SCALE_FACTOR, MAX_SLEEP * SCALE_FACTOR);
+  printf("I, thread %d, am going to sleep for %.2f seconds.\n", *thread_num,
+         (double)sleep_time / SCALE_FACTOR);
+  usleep(sleep_time);
+  printf("I, thread %d, have finished.\n", *thread_num);
+  int retval;
+  if ((retval = pthread_mutex_lock(&lock)) != 0) {
+    fprintf(stderr, "Warning: cannot lock mutex. %s.\n", strerror(retval));
+  }
+  num_running--;
+  if ((retval = pthread_mutex_unlock(&lock)) != 0) {
+    fprintf(stderr, "Warning: cannot unlock mutex. %s.\n", strerror(retval));
+  }
+  pthread_exit(NULL);
+}
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -42,7 +77,28 @@ int main(int argc, char *argv[]) {
       break;
     }
     num_started++;
+    if ((retval = pthread_mutex_lock(&lock)) != 0) {
+      fprintf(stderr, "Warning: cannot lock mutex. %s.\n", strerror(retval));
+      continue;
+    }
+    num_running++;
+    if ((retval = pthread_mutex_unlock(&lock)) != 0) {
+      fprintf(stderr, "Warning: cannot unlock mutex. %s.\n", strerror(retval));
+    }
   }
-  printf("Num threads started: %d\n", num_started);
+  // wait until threads are complete before main continues. if we don't wait,
+  // we run the risk of executing an exit, which will terminate the process and
+  // all threads before the threads have completed
+  for (int i = 0; i < num_started; i++) {
+    if (pthread_join(threads[i], NULL) != 0) {
+      // failed
+      fprintf(stderr, "Warning: Thread %d did not join properly.\n",
+              thread_nums[i]);
+    }
+  }
+  free(thread_nums);
+  free(threads);
+  printf("Threads started: %d.\nThreads still running: %d.\n", num_started,
+         num_running);
   return EXIT_SUCCESS;
 }

@@ -24,6 +24,11 @@
     "climits": "c",
     "atomic_base.h": "c",
     "stdio.h": "c",
-    "stdbool.h": "c"
+    "stdbool.h": "c",
+    "chrono": "cpp",
+    "condition_variable": "cpp",
+    "ctime": "cpp",
+    "mutex": "cpp",
+    "thread": "cpp"
   }
 }
