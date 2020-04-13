@@ -29,6 +29,7 @@
     "condition_variable": "cpp",
     "ctime": "cpp",
     "mutex": "cpp",
-    "thread": "cpp"
+    "thread": "cpp",
+    "wait.h": "c"
   }
 }
