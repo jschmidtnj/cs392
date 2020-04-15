@@ -29,10 +29,16 @@
 #define EXIT_WARNING -1
 
 sigjmp_buf jmp_prompt;
+sig_atomic_t child_running = false;
+
+char * home_dir;
+int home_dir_len;
 
 void catch_signal() {
-  putchar('\n');
-  siglongjmp(jmp_prompt, 1);
+  if (!child_running) {
+    putchar('\n');
+    siglongjmp(jmp_prompt, 1);
+  }
 }
 
 int print_prompt(char *cwd) {
@@ -197,13 +203,13 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
   }
   // no args provided
   if (current_index == len) {
-    if ((res.argument = (char *)malloc(sizeof(char) * 2)) == NULL) {
+    if ((res.argument = (char *)malloc(sizeof(char) * (home_dir_len + 1))) == NULL) {
       print_malloc_failed();
       res.exit_status = EXIT_FAILURE;
       return res;
     }
-    *(res.argument) = '~';
-    *(res.argument + 1) = '\0';
+    memcpy(res.argument, home_dir, home_dir_len);
+    *(res.argument + home_dir_len) = '\0';
     res.exit_status = EXIT_SUCCESS;
     return res;
   }
@@ -211,6 +217,11 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
   // no quote found
   if (*(full_args + current_index) != '"') {
     int start_index = current_index;
+    bool start_home = *(full_args + current_index) == '~';
+    if (start_home) {
+      current_index++;
+      start_index++;
+    }
     while (current_index < len && *(full_args + current_index) != ' ') {
       arg_len++;
       current_index++;
@@ -223,13 +234,20 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
         return res;
       }
     }
-    if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + 1))) == NULL) {
+    int arg_offset = 0;
+    if (start_home) {
+      arg_offset = home_dir_len;
+    }
+    if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + arg_offset + 1))) == NULL) {
       print_malloc_failed();
       res.exit_status = EXIT_FAILURE;
       return res;
     }
-    memcpy(res.argument, full_args + start_index, arg_len);
-    *(res.argument + arg_len) = '\0';
+    if (start_home) {
+      memcpy(res.argument, home_dir, home_dir_len);
+    }
+    memcpy(res.argument + arg_offset, full_args + start_index, arg_len);
+    *(res.argument + arg_offset + arg_len) = '\0';
     res.exit_status = EXIT_SUCCESS;
     return res;
   }
@@ -287,6 +305,8 @@ int main() {
             strerror(errno));
     return EXIT_FAILURE;
   }
+  home_dir = pwuid->pw_dir;
+  home_dir_len = strlen(home_dir);
 
   size_t max_prompt_size = ARG_MAX;
   char *full_prompt_input = (char *)malloc(sizeof(char) * ARG_MAX);
@@ -325,6 +345,10 @@ int main() {
     int full_prompt_input_len;
     if ((full_prompt_input_len =
              getline(&full_prompt_input, &max_prompt_size, stdin)) == -1) {
+      if (errno == EXIT_SUCCESS) {
+        putchar('\n');
+        goto CLEANUP_SUCCESS;
+      }
       fprintf(stderr, "%sError: Problem with getline. %s\n", ERROR_COLOR,
               strerror(errno));
       goto CLEANUP_FAILURE;
@@ -362,12 +386,6 @@ int main() {
         }
         if (cd_old_path && !last_cd_path_set) {
           fprintf(stderr, "%sError: cd OLDPWD not set.\n", ERROR_COLOR);
-        } else if (strcmp(cd_to, "~") == 0) {
-          if (chdir(pwuid->pw_dir) == -1) {
-            print_change_dir_failed(cd_to);
-          } else {
-            get_dir = true;
-          }
         } else {
           if (chdir(cd_to) == -1) {
             print_change_dir_failed(cd_to);
@@ -415,6 +433,7 @@ int main() {
           goto CLEANUP_FAILURE;
         }
       } else if (pid > 0) {
+        child_running = true;
         free(trim_res.trimmed);
         // parent process
         int status;
@@ -424,6 +443,7 @@ int main() {
                   strerror(errno));
           goto CLEANUP_FAILURE;
         }
+        child_running = false;
         if (WEXITSTATUS(status) == EXIT_SUCCESS) {
           get_dir = true;
         }
@@ -433,6 +453,7 @@ int main() {
                 strerror(errno));
         goto CLEANUP_FAILURE;
       }
+      pid = 0;
     }
   }
 CLEANUP_SUCCESS:
