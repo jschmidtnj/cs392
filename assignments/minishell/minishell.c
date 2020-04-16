@@ -35,9 +35,11 @@ char * home_dir;
 int home_dir_len;
 
 void catch_signal() {
+  putchar('\n');
   if (!child_running) {
-    putchar('\n');
     siglongjmp(jmp_prompt, 1);
+  } else {
+    child_running = false;
   }
 }
 
@@ -215,13 +217,33 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
   }
   int arg_len = 0;
   // no quote found
-  if (*(full_args + current_index) != '"') {
-    int start_index = current_index;
-    bool start_home = *(full_args + current_index) == '~';
-    if (start_home) {
-      current_index++;
-      start_index++;
+  bool found_parenthesis = *(full_args + current_index) == '"';
+  int start_index = current_index;
+  if (found_parenthesis) {
+    start_index++;
+    current_index++;
+  }
+  bool start_home = *(full_args + current_index) == '~';
+  if (start_home) {
+    current_index++;
+    start_index++;
+  }
+  if (found_parenthesis) {
+    bool found_closing = false;
+    int end_index;
+    for (; current_index < len; current_index++) {
+      if (*(full_args + current_index) == '"') {
+        end_index = current_index;
+        found_closing = true;
+      }
     }
+    if (!found_closing) {
+      fprintf(stderr, "%sError: No closing quote found for cd.\n", ERROR_COLOR);
+      res.exit_status = EXIT_WARNING;
+      return res;
+    }
+    arg_len = end_index - start_index;
+  } else {
     while (current_index < len && *(full_args + current_index) != ' ') {
       arg_len++;
       current_index++;
@@ -234,55 +256,21 @@ process_cd_res get_cd_arg(const char *full_args, const int len) {
         return res;
       }
     }
-    int arg_offset = 0;
-    if (start_home) {
-      arg_offset = home_dir_len;
-    }
-    if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + arg_offset + 1))) == NULL) {
-      print_malloc_failed();
-      res.exit_status = EXIT_FAILURE;
-      return res;
-    }
-    if (start_home) {
-      memcpy(res.argument, home_dir, home_dir_len);
-    }
-    memcpy(res.argument + arg_offset, full_args + start_index, arg_len);
-    *(res.argument + arg_offset + arg_len) = '\0';
-    res.exit_status = EXIT_SUCCESS;
-    return res;
   }
-  // found parenthesis
-  current_index++;
-  int start_index = current_index;
-  bool found_closing = false;
-  int end_index;
-  for (; current_index < len; current_index++) {
-    if (*(full_args + current_index) == '"') {
-      end_index = current_index;
-      found_closing = true;
-    }
+  int arg_offset = 0;
+  if (start_home) {
+    arg_offset = home_dir_len;
   }
-  if (!found_closing) {
-    fprintf(stderr, "%sError: No closing quote found for cd.\n", ERROR_COLOR);
-    res.exit_status = EXIT_WARNING;
-    return res;
-  }
-  for (current_index = end_index + 1; current_index < len; current_index++) {
-    if (*(full_args + current_index) != ' ') {
-      fprintf(stderr, "%sError: Too many arguments found for cd.\n",
-              ERROR_COLOR);
-      res.exit_status = EXIT_WARNING;
-      return res;
-    }
-  }
-  arg_len = end_index - start_index;
-  if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + 1))) == NULL) {
+  if ((res.argument = (char *)malloc(sizeof(char) * (arg_len + arg_offset + 1))) == NULL) {
     print_malloc_failed();
     res.exit_status = EXIT_FAILURE;
     return res;
   }
-  memcpy(res.argument, full_args + start_index, arg_len);
-  *(res.argument + arg_len) = '\0';
+  if (start_home) {
+    memcpy(res.argument, home_dir, home_dir_len);
+  }
+  memcpy(res.argument + arg_offset, full_args + start_index, arg_len);
+  *(res.argument + arg_offset + arg_len) = '\0';
   res.exit_status = EXIT_SUCCESS;
   return res;
 }
