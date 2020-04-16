@@ -35,8 +35,8 @@ char * home_dir;
 int home_dir_len;
 
 void catch_signal() {
-  putchar('\n');
   if (!child_running) {
+    putchar('\n');
     siglongjmp(jmp_prompt, 1);
   } else {
     child_running = false;
