@@ -6,6 +6,12 @@
  * Description : spfind logic
  ******************************************************************************/
 
+// this code isn't perfect because the parent creates 1 child and grandchild instead of
+// just 2 children. it also doesn't check if pfind doesn't exist.
+// TODO - fix these bugs
+
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
