@@ -147,21 +147,25 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
   char c;
-  int starting_val = 0, ending_val = 0, num_threads = 0;
+  int starting_val = -1, ending_val = -1, num_threads = -1;
   bool found_starting = false, found_ending = false, found_num_threads = false;
   while ((c = getopt(argc, argv, ":s:e:t:")) != -1) {
     int current_val;
     if (c != '?') {
-      str_to_int_res res = str_to_int(&current_val, optarg);
-      if (res != str_to_int_success) {
-        if (res == str_to_int_invalid) {
-          fprintf(stderr,
-                  "Error: Invalid input '%s' received for parameter '-%c'.\n",
-                  optarg, c);
-          return EXIT_FAILURE;
-        } else {
-          fprintf(stderr, "Error: Integer overflow for parameter '-%c'.\n", c);
-          return EXIT_FAILURE;
+      if (optarg == NULL) {
+        c = '?';
+      } else {
+        str_to_int_res res = str_to_int(&current_val, optarg);
+        if (res != str_to_int_success) {
+          if (res == str_to_int_invalid) {
+            fprintf(stderr,
+                    "Error: Invalid input '%s' received for parameter '-%c'.\n",
+                    optarg, c);
+            return EXIT_FAILURE;
+          } else {
+            fprintf(stderr, "Error: Integer overflow for parameter '-%c'.\n", c);
+            return EXIT_FAILURE;
+          }
         }
       }
     }
