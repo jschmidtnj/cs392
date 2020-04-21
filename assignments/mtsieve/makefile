@@ -9,7 +9,7 @@
 CC     = gcc
 C_FILE = mtsieve.c
 TARGET = mtsieve
-CFLAGS = -Wall -Werror -pedantic-errors -lpthread
+CFLAGS = -Ofast -Wall -Werror -pedantic-errors -lm -lpthread
 
 all: mtsieve.c
 	$(CC) $(CFLAGS) $(C_FILE) -o $(TARGET)

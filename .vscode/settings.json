@@ -30,6 +30,7 @@
     "ctime": "cpp",
     "mutex": "cpp",
     "thread": "cpp",
-    "wait.h": "c"
+    "wait.h": "c",
+    "cmath": "c"
   }
 }
