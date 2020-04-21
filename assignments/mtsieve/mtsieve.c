@@ -1,3 +1,10 @@
+/*******************************************************************************
+ * Name   : mtsieve.c
+ * Author : Joshua Schmidt and Matt Evanago
+ * Date   : 4/16/20
+ * Pledge : I pledge my honor that I have abided by the Stevens Honor System.
+ * Description : multi-threaded seive
+ ******************************************************************************/
 #define _GNU_SOURCE
 
 #include <ctype.h>

@@ -1,0 +1,36 @@
+/*******************************************************************************
+ * Name   : runtimes.txt
+ * Author : Joshua Schmidt and Matt Evanago
+ * Date   : 4/16/20
+ * Pledge : I pledge my honor that I have abided by the Stevens Honor System.
+ * Description : multi-threaded seive runtime results
+ ******************************************************************************/
+
+Runtimes:
+
+./mtsieve -s100 -e200000000 -t1 : 0m2.316s
+./mtsieve -s100 -e200000000 -t2 : 0m1.601s
+./mtsieve -s100 -e200000000 -t3 : 0m1.470s
+./mtsieve -s100 -e200000000 -t4 : 0m1.489s
+./mtsieve -s100 -e200000000 -t5 : 0m1.448s
+./mtsieve -s100 -e200000000 -t6 : 0m1.474s
+./mtsieve -s100 -e200000000 -t7 : 0m1.595s
+./mtsieve -s100 -e200000000 -t8 : 0m1.683s
+./mtsieve -s100 -e200000000 -t9 : 0m1.562s
+./mtsieve -s100 -e200000000 -t10 : 0m1.510s
+./mtsieve -s100 -e200000000 -t11 : 0m1.531s
+./mtsieve -s100 -e200000000 -t12 : 0m1.585s
+./mtsieve -s100 -e200000000 -t13 : 0m1.494s
+./mtsieve -s100 -e200000000 -t14 : 0m1.500s
+./mtsieve -s100 -e200000000 -t15 : 0m1.500s
+./mtsieve -s100 -e200000000 -t16 : 0m1.568s
+
+Questions:
+
+cpu: Intel(R) Core(TM) i7-8705G CPU @ 3.10GHz, num threads: 16
+
+Time does not scale linearly with the number of threads. After five threads are added, we start to see
+the runtime start to increase again, from 1.448 seconds to 1.683 seconds for 8 threads, and then somewhat randomly
+increasing and decreasig until it hits 16 threads. There are diminishing returns for adding more threads in this
+algorithm, with the largest decrease occuring when going from 1 thread to 2 threads. Then the runtime plateaus, and
+becomes chaotic.
