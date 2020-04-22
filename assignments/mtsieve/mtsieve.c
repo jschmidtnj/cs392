@@ -164,7 +164,9 @@ int main(int argc, char *argv[]) {
       } else {
         str_to_int_res res = str_to_int(&current_val, optarg);
         if (res != str_to_int_success) {
-          if (res == str_to_int_invalid) {
+          if (res == str_to_int_underflow) {
+            current_val = INT_MIN;
+          } else if (res == str_to_int_invalid) {
             fprintf(stderr,
                     "Error: Invalid input '%s' received for parameter '-%c'.\n",
                     optarg, c);
@@ -234,7 +236,7 @@ int main(int argc, char *argv[]) {
   }
   int min_threads = 1;
   if (num_threads < min_threads) {
-    fprintf(stderr, "Error: Numbers of threads cannot be less than %d.\n",
+    fprintf(stderr, "Error: Number of threads cannot be less than %d.\n",
             min_threads);
     return EXIT_FAILURE;
   }
@@ -242,7 +244,7 @@ int main(int argc, char *argv[]) {
   int max_threads = 2 * num_processors;
   if (num_threads > max_threads) {
     fprintf(stderr,
-            "Error: Numbers of threads cannot exceed twice the number of "
+            "Error: Number of threads cannot exceed twice the number of "
             "processors(%d).\n",
             max_threads);
     return EXIT_FAILURE;
@@ -264,7 +266,7 @@ int main(int argc, char *argv[]) {
     int end =
         i == num_threads - 1 ? ending_val : start + num_primes_per_segment - 1;
     if (i < num_primes_remaining) end++;
-    printf("\t[%d, %d]\n", start, end);
+    printf("   [%d, %d]\n", start, end);
     last_end = end;
     int thread_create_res;
     thread_args[i].start = start;
