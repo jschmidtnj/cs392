@@ -1,0 +1,4 @@
+# ignore binaries
+server
+findserver
+findserver.exe
