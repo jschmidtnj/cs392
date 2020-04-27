@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,8 +21,18 @@
 
 #define EXIT_MESSAGE "bye"
 
-int receive_message(int *client_socket, char *inbuf, char *negative_message,
-                    char *zero_message) {
+volatile sig_atomic_t running = true;
+
+/**
+ * Signal handler.
+ */
+void catch_signal(int sig) {
+  running = false;
+  putchar('\n');
+}
+
+int receive_message(const int *client_socket, char *inbuf,
+                    const char *negative_message, const char *zero_message) {
   memset(inbuf, 0, BUFLEN + 1);
   int bytes_received;
   if ((bytes_received = recv(*client_socket, inbuf, BUFLEN, 0)) < 0) {
@@ -44,7 +55,12 @@ int send_message(const int *client_socket, const char *outbuf,
   return bytes_sent;
 }
 
-int main(int argc, char *argv[]) {
+void print_prompt(const char *username) {
+  printf("[%s]: ", username);
+  fflush(stdout);
+}
+
+int main(const int argc, const char *argv[]) {
   if (argc != 3) {
     fprintf(stderr, "Usage: %s <server IP> <port>\n", argv[0]);
     return EXIT_FAILURE;
@@ -54,7 +70,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in server_addr;
   socklen_t addrlen = sizeof(struct sockaddr_in);
 
-  char *requested_ip = argv[1];
+  const char *requested_ip = argv[1];
   if (strcmp(requested_ip, "localhost") == 0) {
     requested_ip = "127.0.0.1";
   }
@@ -115,7 +131,7 @@ int main(int argc, char *argv[]) {
 
   if (receive_message(&client_socket, inbuf,
                       "Error: Failed to receive message from server. %s.\n",
-                      "All connections are busy. Try again later.\n") > 0) {
+                      "All connections are busy. Try again later.\n") <= 0) {
     retval = EXIT_FAILURE;
     goto EXIT;
   }
@@ -131,27 +147,41 @@ int main(int argc, char *argv[]) {
     goto EXIT;
   }
 
+  struct sigaction action;
+  memset(&action, 0, sizeof(struct sigaction));
+  action.sa_handler = catch_signal;
+  if (sigaction(SIGINT, &action, NULL) == -1) {
+    fprintf(stderr, "Error: Failed to register signal handler. %s.\n",
+            strerror(errno));
+    return EXIT_FAILURE;
+  }
+
+  print_prompt(username);
+
   fd_set set;
-  FD_ZERO(&set);
-  FD_SET(STDIN_FILENO, &set);
-  FD_SET(client_socket, &set);
-  while (true) {
-    int select_res;
-    if ((select_res = select(1, &set, NULL, NULL, NULL)) <= 0) {
+  while (running) {
+    FD_ZERO(&set);
+    FD_SET(STDIN_FILENO, &set);
+    FD_SET(client_socket, &set);
+    if (select(client_socket + 1, &set, NULL, NULL, NULL) < 0 &&
+        errno != EINTR) {
       fprintf(stderr, "Error: Failed in select. %s.\n", strerror(errno));
       retval = EXIT_FAILURE;
       goto EXIT;
     }
-    if (FD_ISSET(STDIN_FILENO, &set)) {
+    if (running && FD_ISSET(STDIN_FILENO, &set)) {
       switch (get_string(outbuf, MAX_MSG_LEN)) {
         case OK:
           if (send_message(
                   &client_socket, outbuf, strlen(outbuf),
-                  "Warning: Failed to send message to server. %s.\n") >= 0 &&
-              (strcmp(outbuf, EXIT_MESSAGE) == 0)) {
-            printf("Goodbye.\n");
-            retval = EXIT_SUCCESS;
-            goto EXIT;
+                  "Warning: Failed to send message to server. %s.\n") >= 0) {
+            if ((strcmp(outbuf, EXIT_MESSAGE) == 0)) {
+              printf("Goodbye.\n");
+              retval = EXIT_SUCCESS;
+              goto EXIT;
+            } else {
+              print_prompt(username);
+            }
           }
           break;
         case TOO_LONG:
@@ -164,7 +194,7 @@ int main(int argc, char *argv[]) {
           break;
       }
     }
-    if (FD_ISSET(client_socket, &set)) {
+    if (running && FD_ISSET(client_socket, &set)) {
       int bytes_received;
       if ((bytes_received = receive_message(
                &client_socket, inbuf,
@@ -178,7 +208,8 @@ int main(int argc, char *argv[]) {
           retval = EXIT_SUCCESS;
           goto EXIT;
         } else {
-          printf(inbuf, NULL);
+          printf("\n%s\n", inbuf);
+          print_prompt(username);
         }
       }
     }
@@ -186,7 +217,6 @@ int main(int argc, char *argv[]) {
 
 EXIT:
   if (fcntl(client_socket, F_GETFD) >= 0) {
-    // socket exists
     close(client_socket);
   }
   return retval;
