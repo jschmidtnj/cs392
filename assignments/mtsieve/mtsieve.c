@@ -19,8 +19,6 @@
 #include <sys/sysinfo.h>
 #include <unistd.h>
 
-// TODO - what's the maximum input we can have in the program?
-
 #define SPECIAL_DIGIT 3
 #define MIN_SPECIAL_COUNT 2
 

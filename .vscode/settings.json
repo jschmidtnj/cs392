@@ -32,6 +32,9 @@
     "thread": "cpp",
     "wait.h": "c",
     "cmath": "c",
-    "pthread.h": "c"
+    "pthread.h": "c",
+    "util.h": "c",
+    "unistd.h": "c",
+    "ctype.h": "c"
   }
 }
