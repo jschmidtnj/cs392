@@ -140,7 +140,7 @@ int main(const int argc, const char *argv[]) {
 
   char outbuf[MAX_MSG_LEN + 1];
 
-  strncat(outbuf, username, MAX_NAME_LEN);
+  strcpy(outbuf, username);
   if (send_message(&client_socket, outbuf, strlen(username),
                    "Error: Failed to send username to server. %s.\n") < 0) {
     retval = EXIT_FAILURE;

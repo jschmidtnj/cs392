@@ -11,7 +11,7 @@ C_FILE = chatclient.c
 TARGET = chatclient
 SERVER_FILE = chatserver.c
 SERVER_TARGET = chatserver
-CFLAGS = -g -Wall -Werror -pedantic-errors
+CFLAGS = -Ofast -Wall -Werror -pedantic-errors
 
 all: chatclient.c
 	$(CC) $(CFLAGS) $(C_FILE) -o $(TARGET)
