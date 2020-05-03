@@ -1,0 +1,4 @@
+# ignore executables
+read
+read.exe
+*.txt
