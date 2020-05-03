@@ -105,7 +105,7 @@ int main(const int argc, const char *argv[]) {
   while (get_string_res != OK) {
     printf("Enter your username: ");
     fflush(stdout);
-    get_string_res = get_string(username, MAX_NAME_LEN);
+    get_string_res = get_string(username, MAX_NAME_LEN + 1);
     if (get_string_res == TOO_LONG) {
       fprintf(stderr, "Sorry, limit your username to %d characters.\n",
               MAX_NAME_LEN);

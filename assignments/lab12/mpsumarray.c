@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
   }
 
   if ((retval = set_sem_value(semid, 1)) == EXIT_FAILURE) {
+    retval = EXIT_FAILURE;
     goto EXIT;
   }
 

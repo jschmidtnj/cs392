@@ -1,15 +1,13 @@
 /*******************************************************************************
  * Name          : util.h
- * Author        : Brian S. Borowski
+ * Author        : Brian S. Borowski and Joshua Schmidt and Matt Evanago
  * Version       : 1.0
  * Date          : April 24, 2020
- * Last modified : April 26, 2020
+ * Last modified : April 27, 2020
  * Description   : Helpful utility functions for chat server/client.
  ******************************************************************************/
 #ifndef UTIL_H_
 #define UTIL_H_
-
-#define _GNU_SOURCE
 
 #include <ctype.h>
 #include <errno.h>
@@ -18,17 +16,17 @@
 #include <string.h>
 #include <unistd.h>
 
+// added min and max port
 #define MIN_PORT 1024
 #define MAX_PORT 65535
 #define MAX_MSG_LEN 1024
 #define MAX_NAME_LEN 20
-#define BUFLEN MAX_MSG_LEN + MAX_NAME_LEN + 3
-// +3 = '[' before name, "] " after name
+#define BUFLEN MAX_MSG_LEN + MAX_NAME_LEN + 4
+// +3 = '[' before name, "]: " after name
 
 enum parse_string_t { OK, NO_INPUT, TOO_LONG };
 
-/* Function prototypes */
-bool is_integer(const char *input);
+/* Functions that should be used in client and server. */
 bool parse_int(const char *input, int *i, const char *usage);
 int get_string(char *buf, const size_t sz);
 
@@ -60,7 +58,7 @@ bool parse_int(const char *input, int *i, const char *usage) {
   long long long_long_i;
 
   if (strlen(input) == 0) {
-    fprintf(stderr, "Error: Invalid input '%s' received for %s.\n", input, usage);
+    fprintf(stderr, "Error: Invalid input '' received for %s.\n", usage);
     return false;
   }
   if (is_integer(input) && sscanf(input, "%lld", &long_long_i) == 1) {
