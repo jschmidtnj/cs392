@@ -170,7 +170,7 @@ int main(const int argc, const char *argv[]) {
       goto EXIT;
     }
     if (running && FD_ISSET(STDIN_FILENO, &set)) {
-      switch (get_string(outbuf, MAX_MSG_LEN)) {
+      switch (get_string(outbuf, MAX_MSG_LEN + 1)) {
         case OK:
           if (send_message(
                   &client_socket, outbuf, strlen(outbuf),
@@ -186,9 +186,11 @@ int main(const int argc, const char *argv[]) {
           break;
         case TOO_LONG:
           printf("Sorry, limit your message to %d characters.\n", MAX_MSG_LEN);
+          print_prompt(username);
           break;
         case NO_INPUT:
           // no input provided
+          print_prompt(username);
           break;
         default:
           break;
